@@ -226,6 +226,7 @@
         .node.scene .node-header { border-color: #2196F3; }
         .node.dialogue .node-header { border-color: #4CAF50; }
         .node.choice .node-header { border-color: #FF9800; }
+    .node.external .node-header { border-color: #FF5722; }
 
         .node-title {
             font-weight: bold;
@@ -753,6 +754,11 @@
                             effects: [],
                             conditions: []
                         };
+                    case 'external':
+                        return {
+                            label: '外部场景',
+                            nextSceneId: ''
+                        };
                     default:
                         return {};
                 }
@@ -771,14 +777,16 @@
                     chapter: '📖',
                     scene: '🎬',
                     dialogue: '💬',
-                    choice: '🔀'
+                    choice: '🔀',
+                    external: '🚀'
                 };
                 
                 const titles = {
                     chapter: '章节',
                     scene: '场景',
                     dialogue: '对话',
-                    choice: '选择'
+                    choice: '选择',
+                    external: '外部场景'
                 };
                 
                 nodeEl.innerHTML = `
@@ -868,6 +876,8 @@
                         return node.data.name || '未命名';
                     case 'choice':
                         return node.data.text?.substring(0, 10) || '未命名';
+                    case 'external':
+                        return node.data.label || node.data.nextSceneId || '外部场景';
                     default:
                         return '未命名';
                 }
@@ -898,6 +908,12 @@
                         return `
                             <div class="node-field">
                                 <span class="node-field-label">选项:</span>${(node.data.text || '').substring(0, 20)}...
+                            </div>
+                        `;
+                    case 'external':
+                        return `
+                            <div class="node-field">
+                                <span class="node-field-label">目标:</span>${node.data.label || node.data.nextSceneId}
                             </div>
                         `;
                     default:
@@ -939,6 +955,9 @@
                         break;
                     case 'choice':
                         panel.innerHTML = this.renderChoiceProperties(node);
+                        break;
+                    case 'external':
+                        panel.innerHTML = this.renderExternalProperties(node);
                         break;
                 }
                 
@@ -1077,6 +1096,19 @@
                 `;
             }
             
+            renderExternalProperties(node) {
+                return `
+                    <h3 style="color: #D4AF37; margin-bottom: 20px;">🚀 外部场景</h3>
+                    <div class="property-group">
+                        <label class="property-label">目标标识</label>
+                        <input type="text" class="property-input" id="prop-nextSceneId" value="${node.data.nextSceneId || ''}" disabled>
+                    </div>
+                    <div style="color: #888; font-size: 12px; line-height: 1.6;">
+                        此节点代表跨章节或特殊跳转的目标，仅作参考，不可直接编辑。
+                    </div>
+                `;
+            }
+
             // 格式化效果数组
             formatEffects(effects) {
                 if (!effects || effects.length === 0) return '';
@@ -1091,6 +1123,10 @@
             
             // 绑定属性监听器
             attachPropertyListeners(node) {
+                if (node.type === 'external') {
+                    return;
+                }
+
                 const inputs = document.querySelectorAll('.property-input, .property-select, .property-textarea');
                 inputs.forEach(input => {
                     input.addEventListener('input', (e) => {
@@ -1160,8 +1196,8 @@
                 const titleEl = nodeEl.querySelector('.node-title');
                 const bodyEl = nodeEl.querySelector('.node-body');
                 
-                const icons = { chapter: '📖', scene: '🎬', dialogue: '💬', choice: '🔀' };
-                const titles = { chapter: '章节', scene: '场景', dialogue: '对话', choice: '选择' };
+                const icons = { chapter: '📖', scene: '🎬', dialogue: '💬', choice: '🔀', external: '🚀' };
+                const titles = { chapter: '章节', scene: '场景', dialogue: '对话', choice: '选择', external: '外部场景' };
                 
                 titleEl.textContent = `${icons[node.type]} ${titles[node.type]}: ${this.getNodeDisplayName(node)}`;
                 bodyEl.innerHTML = this.renderNodeBody(node);
@@ -1432,6 +1468,7 @@
                 const scenes = json.scenes || {};
                 const sceneNodeMap = new Map(); // sceneId -> nodeId 映射
                 const dialogueNodeMap = new Map(); // sceneId -> [dialogueNodeIds] 映射
+                const externalNodeMap = new Map(); // nextSceneId -> nodeId 映射
                 
                 let yOffset = 50;
                 const sceneSpacing = 400;
@@ -1525,23 +1562,51 @@
                         const nextScene = choice.nextScene;
                         
                         // 跳过特殊场景
-                        if (!nextScene || nextScene === 'main_menu' || nextScene === 'game_end' || nextScene === 'end') {
+                        if (!nextScene || nextScene === 'main_menu' || nextScene === 'game_end') {
                             return;
                         }
                         
                         // 处理跨章节场景（chapter2:scene1 或 chapter2_scene1）
                         let targetSceneId = nextScene;
+                        let isExternal = false;
+
                         if (nextScene.includes(':')) {
-                            targetSceneId = nextScene.split(':')[1];
+                            const [chapterPrefix, scenePart] = nextScene.split(':');
+                            if (chapterPrefix && scenePart) {
+                                if (chapterPrefix === this.currentChapter.chapterId) {
+                                    targetSceneId = scenePart;
+                                } else {
+                                    isExternal = true;
+                                }
+                            }
                         } else if (nextScene.includes('_')) {
                             const parts = nextScene.split('_');
-                            if (parts[0].startsWith('chapter')) {
-                                targetSceneId = parts.slice(1).join('_');
+                            const maybeChapter = parts[0];
+                            if (maybeChapter.startsWith('chapter')) {
+                                if (maybeChapter === this.currentChapter.chapterId) {
+                                    targetSceneId = parts.slice(1).join('_') || nextScene;
+                                } else {
+                                    isExternal = true;
+                                }
                             }
                         }
                         
                         // 查找目标场景节点
-                        const targetSceneNodeId = sceneNodeMap.get(targetSceneId);
+                        let targetSceneNodeId = sceneNodeMap.get(targetSceneId);
+
+                        if (!targetSceneNodeId && isExternal) {
+                            // 创建外部场景占位节点
+                            if (!externalNodeMap.has(nextScene)) {
+                                const placeholderId = this.createNode('external', 1200, externalNodeMap.size * 200 + 80);
+                                const placeholderNode = this.nodes.get(placeholderId);
+                                placeholderNode.data.label = nextScene;
+                                placeholderNode.data.nextSceneId = nextScene;
+                                this.updateNodeDisplay(placeholderId);
+                                externalNodeMap.set(nextScene, placeholderId);
+                            }
+                            targetSceneNodeId = externalNodeMap.get(nextScene);
+                        }
+
                         if (targetSceneNodeId) {
                             // 找到当前选择节点（通过文本匹配）
                             const currentSceneNodeId = sceneNodeMap.get(sceneId);
