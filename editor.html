@@ -935,9 +935,21 @@
                             </div>
                         `;
                     case 'choice':
+                        const choiceText = (node.data.text || '').substring(0, 20);
+                        const effectsText = this.formatEffects(node.data.effects).split('\n')[0] || '无';
+                        const conditionsText = this.formatConditions(node.data.conditions).split('\n')[0] || '无';
                         return `
                             <div class="node-field">
-                                <span class="node-field-label">选项:</span>${(node.data.text || '').substring(0, 20)}...
+                                <span class="node-field-label">选项:</span>${choiceText}${choiceText.length === 20 ? '...' : ''}
+                            </div>
+                            <div class="node-field">
+                                <span class="node-field-label">效果:</span>${effectsText}${this.formatEffects(node.data.effects).includes('\n') ? '...' : ''}
+                            </div>
+                            <div class="node-field">
+                                <span class="node-field-label">条件:</span>${conditionsText}${this.formatConditions(node.data.conditions).includes('\n') ? '...' : ''}
+                            </div>
+                            <div class="node-field">
+                                <span class="node-field-label">跳转:</span>${node.data.nextScene || '未设置'}
                             </div>
                         `;
                     case 'external':
@@ -1288,8 +1300,9 @@
                     c => c.from === this.connectingFrom && c.to === toNodeId
                 );
                 
+                let connection = existingConnection;
                 if (!existingConnection) {
-                    const connection = {
+                    connection = {
                         id: `conn_${this.connectionIdCounter++}`,
                         from: this.connectingFrom,
                         to: toNodeId
@@ -1298,9 +1311,43 @@
                     this.connections.push(connection);
                     this.renderConnection(connection);
                 }
+
+                if (connection) {
+                    this.updateChoiceNextScene(connection);
+                }
                 
                 this.cancelConnection();
                 this.updateInfo();
+            }
+
+            updateChoiceNextScene(connection) {
+                const fromNode = this.nodes.get(connection.from);
+                const toNode = this.nodes.get(connection.to);
+                if (!fromNode || fromNode.type !== 'choice' || !toNode) {
+                    return;
+                }
+
+                let nextSceneValue = '';
+                if (toNode.type === 'scene') {
+                    nextSceneValue = toNode.data.sceneId || '';
+                } else if (toNode.type === 'external') {
+                    nextSceneValue = toNode.data.nextSceneId || '';
+                }
+
+                if (!nextSceneValue) {
+                    return;
+                }
+
+                fromNode.data.nextScene = nextSceneValue;
+
+                if (this.selectedNode === fromNode.id) {
+                    const input = document.getElementById('prop-nextScene');
+                    if (input) {
+                        input.value = nextSceneValue;
+                    }
+                }
+
+                this.updateNodeDisplay(fromNode.id);
             }
             
             // 取消连接
