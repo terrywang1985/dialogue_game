@@ -924,9 +924,14 @@
                             </div>
                         `;
                     case 'dialogue':
+                        const dialogueText = (node.data.text || '').substring(0, 20);
+                        const characterDisplay = this.getResourceDisplay('characters', node.data.character);
                         return `
                             <div class="node-field">
-                                <span class="node-field-label">内容:</span>${(node.data.text || '').substring(0, 20)}...
+                                <span class="node-field-label">内容:</span>${dialogueText}${dialogueText.length === 20 ? '...' : ''}
+                            </div>
+                            <div class="node-field">
+                                <span class="node-field-label">立绘:</span>${characterDisplay}
                             </div>
                         `;
                     case 'choice':
