@@ -574,6 +574,7 @@
                 this.setupEventListeners();
                 await this.loadResources();
                 this.updateInfo();
+                this.updateCanvasTransform();
             }
             
             // 加载资源列表
@@ -610,6 +611,7 @@
                         const x = (e.clientX - rect.left - this.offset.x) / this.scale;
                         const y = (e.clientY - rect.top - this.offset.y) / this.scale;
                         this.createNode(nodeType, x, y);
+                        this.updateCanvasTransform();
                     }
                 });
                 
@@ -701,14 +703,6 @@
                 this.nodes.set(nodeId, node);
                 this.renderNode(node);
                 this.updateInfo();
-                
-                // 强制重绘
-                requestAnimationFrame(() => {
-                    const nodeEl = document.getElementById(nodeId);
-                    if (nodeEl) {
-                        nodeEl.style.display = 'block';
-                    }
-                });
                 
                 return nodeId;
             }
