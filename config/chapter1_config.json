@@ -62,7 +62,7 @@
       ]
     },
     "scene2": {
-      "background": "resources/backgrounds/medical_hall.png",
+      "background": "resources/backgrounds/cold_palace.png",
       "bgm": "resources/music/gentle_theme.mp3",
       "dialogues": [
         {
@@ -94,7 +94,7 @@
               "value": 2
             }
           ],
-          "nextScene": "scene3",
+          "nextScene": "scene2_walk",
           "conditions": []
         },
         {
@@ -106,7 +106,7 @@
               "value": 1
             }
           ],
-          "nextScene": "scene3",
+          "nextScene": "scene2_walk",
           "conditions": []
         },
         {
@@ -118,6 +118,32 @@
               "value": 1
             }
           ],
+          "nextScene": "scene2_walk",
+          "conditions": []
+        }
+      ]
+    },
+    "scene2_walk": {
+      "background": "resources/backgrounds/imperial_garden.png",
+      "bgm": "resources/music/gentle_theme.mp3",
+      "dialogues": [
+        {
+          "name": "旁白",
+          "text": "顾清弦叮嘱几句后告辞。闷在冷宫许久，苏清月想着出去透口气，沿着偏僻小道慢慢踱步。",
+          "character": null,
+          "voice": null
+        },
+        {
+          "name": "系统提示",
+          "text": "不知不觉，前方便是御花园的偏门。花影重重中，脚步声渐近——",
+          "character": null,
+          "voice": null
+        }
+      ],
+      "choices": [
+        {
+          "text": "【继续】踏入御花园一角",
+          "effects": [],
           "nextScene": "scene3",
           "conditions": []
         }
@@ -161,7 +187,7 @@
               "value": 1
             }
           ],
-          "nextScene": "scene4",
+          "nextScene": "scene3_defend",
           "conditions": []
         },
         {
@@ -173,7 +199,7 @@
               "value": 1
             }
           ],
-          "nextScene": "scene4",
+          "nextScene": "scene3_avoid",
           "conditions": []
         },
         {
@@ -185,18 +211,96 @@
               "value": 1
             }
           ],
+          "nextScene": "scene3_praise",
+          "conditions": []
+        }
+      ]
+    },
+    "scene3_defend": {
+      "background": "resources/backgrounds/imperial_garden.png",
+      "bgm": "resources/music/tense_theme.mp3",
+      "dialogues": [
+        {
+          "name": "苏清月",
+          "text": "（正色）家父清正为官，一生光明磊落。如今蒙冤，终有一日会水落石出。",
+          "character": "resources/characters/heroine_cold_palace.png",
+          "voice": null
+        },
+        {
+          "name": "萧王爷",
+          "text": "（凝视片刻，收敛锋芒）倒有几分胆气。今日到此，回去好自为之。",
+          "character": "resources/characters/xiao_wangye.png",
+          "voice": null
+        }
+      ],
+      "choices": [
+        {
+          "text": "【告退】行礼退下",
+          "effects": [],
+          "nextScene": "scene4",
+          "conditions": []
+        }
+      ]
+    },
+    "scene3_avoid": {
+      "background": "resources/backgrounds/imperial_garden.png",
+      "bgm": "resources/music/tense_theme.mp3",
+      "dialogues": [
+        {
+          "name": "苏清月",
+          "text": "（低声）臣妾病体未愈，不敢多言，愿改日再谢王爷。",
+          "character": "resources/characters/heroine_cold_palace.png",
+          "voice": null
+        },
+        {
+          "name": "萧王爷",
+          "text": "（淡淡）也罢。御花园非你久留之处。",
+          "character": "resources/characters/xiao_wangye.png",
+          "voice": null
+        }
+      ],
+      "choices": [
+        {
+          "text": "【离开】在内侍催促下退回原路",
+          "effects": [],
+          "nextScene": "scene4",
+          "conditions": []
+        }
+      ]
+    },
+    "scene3_praise": {
+      "background": "resources/backgrounds/imperial_garden.png",
+      "bgm": "resources/music/tense_theme.mp3",
+      "dialogues": [
+        {
+          "name": "苏清月",
+          "text": "（含笑）园景锦绣，但不及王爷心怀天下。",
+          "character": "resources/characters/heroine_cold_palace.png",
+          "voice": null
+        },
+        {
+          "name": "萧王爷",
+          "text": "（微愣，随即失笑）少拍朕……本王的马屁。回去吧。",
+          "character": "resources/characters/xiao_wangye.png",
+          "voice": null
+        }
+      ],
+      "choices": [
+        {
+          "text": "【告退】行礼离去",
+          "effects": [],
           "nextScene": "scene4",
           "conditions": []
         }
       ]
     },
     "scene4": {
-      "background": "resources/backgrounds/study_room.png",
+      "background": "resources/backgrounds/imperial_garden.png",
       "bgm": "resources/music/gentle_theme.mp3",
       "dialogues": [
         {
           "name": "韩将军",
-          "text": "（关切地）苏姑娘，可是迷路了？冷宫方向在那边。",
+          "text": "（关切地）苏姑娘，可是迷路了？这边不是回冷宫的方向。",
           "character": "resources/characters/han_general.png",
           "voice": null
         },
