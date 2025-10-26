@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凤临朝：剧情体验</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 游戏配置数据 - 必须在main.js之前引入 -->
+    <script src="game-data.js"></script>
+    <script src="main.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .game-screen {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .background-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .background-layer img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .character-layer {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 70%;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        
+        .character-sprite {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.3));
+        }
+        
+        .ui-layer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 3;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 2rem 1rem 1rem;
+        }
+        
+        .dialogue-box {
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.95), rgba(139, 0, 0, 0.9));
+            border: 2px solid #D4AF37;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .character-name {
+            color: #D4AF37;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .dialogue-text {
+            color: #fff;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+        
+        .choice-button {
+            background: linear-gradient(135deg, rgba(47, 79, 79, 0.9), rgba(139, 0, 0, 0.8));
+            border: 2px solid #D4AF37;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            text-align: left;
+            line-height: 1.4;
+        }
+        
+        .choice-button:hover {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.9), rgba(47, 79, 79, 0.8));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+        
+        .stats-bar {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            z-index: 4;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid #D4AF37;
+            border-radius: 10px;
+            padding: 0.8rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stat-label {
+            color: #D4AF37;
+            font-size: 0.8rem;
+            min-width: 40px;
+        }
+        
+        .stat-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(139, 0, 0, 0.5);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #D4AF37, #FFD700);
+            transition: width 0.5s ease;
+        }
+        
+        .chapter-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 4;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid #D4AF37;
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            color: #D4AF37;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .skip-button {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            z-index: 4;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid #D4AF37;
+            color: #D4AF37;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+        
+        .skip-button:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .typing-text {
+            overflow: hidden;
+            border-right: 2px solid #D4AF37;
+            animation: typing 2s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #D4AF37; }
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .back-button {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 5;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid #D4AF37;
+            color: #D4AF37;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-button:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-screen">
+        <!-- 返回按钮 -->
+        <button class="back-button" onclick="window.location.href='index.html'">
+            ← 返回主菜单
+        </button>
+        
+        <!-- 背景图层 -->
+        <div class="background-layer">
+            <img id="backgroundImage" src="" alt="场景背景">
+        </div>
+        
+        <!-- 角色图层 -->
+        <div class="character-layer">
+            <img id="characterSprite" class="character-sprite hidden" src="" alt="角色">
+        </div>
+        
+        <!-- 属性状态栏 -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">智慧</span>
+                <div class="stat-bar">
+                    <div class="stat-fill" id="wisdomBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">勇气</span>
+                <div class="stat-bar">
+                    <div class="stat-fill" id="courageBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">洞察</span>
+                <div class="stat-bar">
+                    <div class="stat-fill" id="insightBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">魅力</span>
+                <div class="stat-bar">
+                    <div class="stat-fill" id="charmBar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 章节指示器 -->
+        <div class="chapter-indicator" id="chapterIndicator">
+            第一章：冷宫初遇
+        </div>
+        
+        <!-- 跳过按钮 -->
+        <button class="skip-button hidden" id="skipBtn" onclick="skipDialogue()">
+            跳过
+        </button>
+        
+        <!-- UI图层 -->
+        <div class="ui-layer">
+            <div class="dialogue-box" id="dialogueBox">
+                <div class="character-name" id="characterName"></div>
+                <div class="dialogue-text" id="dialogueText"></div>
+            </div>
+            
+            <div class="choices-container hidden" id="choicesContainer">
+                <!-- 选择按钮将在这里动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态管理
+        const gameStateLocal = {
+            currentScene: 'scene1',
+            currentDialogue: 0,
+            stats: {
+                wisdom: 0,
+                courage: 0,
+                insight: 0,
+                charm: 0
+            },
+            affection: {
+                gu: 0,
+                xiao: 0,
+                han: 0
+            },
+            choices: [],
+            chapter: 1,
+            visitedScenes: [],
+            items: []
+        };
+        
+        let storyDataManager = null;
+        let currentBGM = null;
+        
+        // 初始化游戏
+        async function initGame() {
+            // 创建剧情数据管理器实例
+            storyDataManager = new StoryDataManager();
+            
+            // 加载配置文件
+            const loaded = await storyDataManager.loadConfigs();
+            if (!loaded) {
+                alert('加载游戏配置失败，请刷新页面重试');
+                return;
+            }
+            
+            // 更新章节标题
+            document.getElementById('chapterIndicator').textContent = storyDataManager.getChapterTitle();
+            
+            // 加载存档
+            const saveData = localStorage.getItem('phoenixGameSave');
+            if (saveData) {
+                const savedState = JSON.parse(saveData);
+                Object.assign(gameStateLocal, savedState);
+            }
+            
+            updateStats();
+            loadScene(gameStateLocal.currentScene || storyDataManager.getStartScene());
+        }
+        
+        // 加载场景
+        function loadScene(sceneId) {
+            const scene = storyDataManager.getScene(sceneId);
+            if (!scene) {
+                console.error('场景不存在:', sceneId);
+                return;
+            }
+            
+            // 记录访问过的场景
+            if (!gameStateLocal.visitedScenes.includes(sceneId)) {
+                gameStateLocal.visitedScenes.push(sceneId);
+            }
+            
+            // 更新背景
+            document.getElementById('backgroundImage').src = scene.background;
+            
+            // 播放背景音乐
+            if (scene.bgm && scene.bgm !== currentBGM) {
+                playBGM(scene.bgm);
+                currentBGM = scene.bgm;
+            }
+            
+            // 重置对话索引
+            gameStateLocal.currentDialogue = 0;
+            gameStateLocal.currentScene = sceneId;
+            
+            // 开始对话
+            showNextDialogue();
+        }
+        
+        // 播放背景音乐
+        function playBGM(musicPath) {
+            // TODO: 实现实际的音乐播放
+            console.log('播放背景音乐:', musicPath);
+        }
+        
+        // 显示下一段对话
+        function showNextDialogue() {
+            const scene = storyDataManager.getScene(gameStateLocal.currentScene);
+            const dialogue = scene.dialogues[gameStateLocal.currentDialogue];
+            
+            if (!dialogue) {
+                // 对话结束，显示选择
+                showChoices();
+                return;
+            }
+            
+            // 更新角色立绘
+            const characterSprite = document.getElementById('characterSprite');
+            if (dialogue.character) {
+                characterSprite.src = dialogue.character;
+                characterSprite.classList.remove('hidden');
+            } else {
+                characterSprite.classList.add('hidden');
+            }
+            
+            // 更新对话内容
+            document.getElementById('characterName').textContent = dialogue.name;
+            
+            // 打字机效果显示文本
+            const textElement = document.getElementById('dialogueText');
+            textElement.textContent = '';
+            
+            let i = 0;
+            const typeWriter = () => {
+                if (i < dialogue.text.length) {
+                    textElement.textContent += dialogue.text.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 50);
+                } else {
+                    // 显示跳过按钮
+                    document.getElementById('skipBtn').classList.remove('hidden');
+                }
+            };
+            
+            typeWriter();
+            
+            gameStateLocal.currentDialogue++;
+        }
+        
+        // 跳过对话
+        function skipDialogue() {
+            const scene = storyDataManager.getScene(gameStateLocal.currentScene);
+            const dialogue = scene.dialogues[gameStateLocal.currentDialogue - 1];
+            
+            if (dialogue) {
+                document.getElementById('dialogueText').textContent = dialogue.text;
+            }
+            document.getElementById('skipBtn').classList.add('hidden');
+        }
+        
+        // 显示选择
+        function showChoices() {
+            const scene = storyDataManager.getScene(gameStateLocal.currentScene);
+            const choicesContainer = document.getElementById('choicesContainer');
+            
+            // 清空之前的选择
+            choicesContainer.innerHTML = '';
+            
+            // 生成选择按钮
+            scene.choices.forEach((choice, index) => {
+                // 检查选择条件
+                if (!storyDataManager.checkChoiceCondition(choice, gameStateLocal)) {
+                    return; // 不显示不满足条件的选项
+                }
+                
+                const button = document.createElement('button');
+                button.className = 'choice-button';
+                button.textContent = choice.text;
+                button.onclick = () => makeChoice(choice, index);
+                choicesContainer.appendChild(button);
+            });
+            
+            // 显示选择容器
+            choicesContainer.classList.remove('hidden');
+            
+            // 隐藏跳过按钮
+            document.getElementById('skipBtn').classList.add('hidden');
+            
+            // 动画效果
+            anime({
+                targets: '.choice-button',
+                translateX: [-100, 0],
+                opacity: [0, 1],
+                delay: anime.stagger(100),
+                duration: 500,
+                easing: 'easeOutQuart'
+            });
+        }
+        
+        // 做出选择
+        function makeChoice(choice, index) {
+            // 应用选择效果
+            storyDataManager.applyChoiceEffects(choice, gameStateLocal);
+            
+            // 记录选择
+            gameStateLocal.choices.push({
+                scene: gameStateLocal.currentScene,
+                choice: index,
+                timestamp: Date.now()
+            });
+            
+            // 保存游戏状态
+            saveGame();
+            
+            // 更新属性显示
+            updateStats();
+            
+            // 隐藏选择容器
+            document.getElementById('choicesContainer').classList.add('hidden');
+            
+            // 加载下一个场景
+            if (choice.nextScene === 'end') {
+                showEndScreen();
+            } else {
+                loadScene(choice.nextScene);
+            }
+        }
+        
+        // 更新属性显示
+        function updateStats() {
+            const maxStat = 10;
+            
+            document.getElementById('wisdomBar').style.width = (gameStateLocal.stats.wisdom / maxStat * 100) + '%';
+            document.getElementById('courageBar').style.width = (gameStateLocal.stats.courage / maxStat * 100) + '%';
+            document.getElementById('insightBar').style.width = (gameStateLocal.stats.insight / maxStat * 100) + '%';
+            document.getElementById('charmBar').style.width = (gameStateLocal.stats.charm / maxStat * 100) + '%';
+        }
+        
+        // 保存游戏
+        function saveGame() {
+            localStorage.setItem('phoenixGameSave', JSON.stringify(gameStateLocal));
+        }
+        
+        // 显示结局画面
+        function showEndScreen() {
+            const dialogueBox = document.getElementById('dialogueBox');
+            dialogueBox.innerHTML = `
+                <div class="character-name">第一章完成</div>
+                <div class="dialogue-text">
+                    感谢您体验《凤临朝：穿越之权倾天下》首章内容！<br><br>
+                    您的选择塑造了独特的剧情体验：<br>
+                    智慧：${gameStateLocal.stats.wisdom}<br>
+                    勇气：${gameStateLocal.stats.courage}<br>
+                    洞察：${gameStateLocal.stats.insight}<br>
+                    魅力：${gameStateLocal.stats.charm}<br><br>
+                    更多精彩剧情正在制作中...
+                </div>
+            `;
+            
+            // 添加返回按钮
+            const backButton = document.createElement('button');
+            backButton.className = 'choice-button';
+            backButton.textContent = '返回主菜单';
+            backButton.onclick = () => window.location.href = 'index.html';
+            
+            const choicesContainer = document.getElementById('choicesContainer');
+            choicesContainer.innerHTML = '';
+            choicesContainer.appendChild(backButton);
+            choicesContainer.classList.remove('hidden');
+        }
+        
+        // 点击屏幕继续对话
+        document.addEventListener('click', function(e) {
+            // 如果点击的是按钮，不处理
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                return;
+            }
+            
+            // 如果有选择显示，不处理
+            if (!document.getElementById('choicesContainer').classList.contains('hidden')) {
+                return;
+            }
+            
+            // 如果对话正在打字，完成打字
+            const scene = storyDataManager.getScene(gameStateLocal.currentScene);
+            if (!scene) return;
+            
+            const dialogue = scene.dialogues[gameStateLocal.currentDialogue - 1];
+            if (!dialogue) return;
+            
+            const textElement = document.getElementById('dialogueText');
+            if (textElement.textContent.length < dialogue.text.length) {
+                skipDialogue();
+                return;
+            }
+            
+            // 显示下一段对话
+            showNextDialogue();
+        });
+        
+        // 初始化游戏
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>

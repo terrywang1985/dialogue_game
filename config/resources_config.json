@@ -1,0 +1,36 @@
+{
+  "backgrounds": {
+    "cold_palace": "resources/backgrounds/cold_palace.png",
+    "medical_hall": "resources/backgrounds/medical_hall.png",
+    "imperial_garden": "resources/backgrounds/imperial_garden.png",
+    "study_room": "resources/backgrounds/study_room.png",
+    "throne_room": "resources/backgrounds/throne_room.png"
+  },
+  "characters": {
+    "heroine_cold_palace": "resources/characters/heroine_cold_palace.png",
+    "gu_taiyi": "resources/characters/gu_taiyi.png",
+    "xiao_wangye": "resources/characters/xiao_wangye.png",
+    "han_general": "resources/characters/han_general.png"
+  },
+  "music": {
+    "_comment": "音乐文件暂未添加，可以在 resources/music/ 目录下添加 .mp3 文件",
+    "cold_palace_theme": "resources/music/cold_palace_theme.mp3",
+    "gentle_theme": "resources/music/gentle_theme.mp3",
+    "tense_theme": "resources/music/tense_theme.mp3",
+    "ending_theme": "resources/music/ending_theme.mp3",
+    "menu_theme": "resources/music/menu_theme.mp3"
+  },
+  "sounds": {
+    "_comment": "音效文件暂未添加，可以在 resources/sounds/ 目录下添加 .mp3 文件",
+    "button": "resources/sounds/button.mp3",
+    "choice": "resources/sounds/choice.mp3",
+    "page": "resources/sounds/page.mp3",
+    "notification": "resources/sounds/notification.mp3"
+  },
+  "cg": {
+    "_comment": "CG文件暂未添加，当前使用背景图片作为占位符",
+    "ending1": "resources/backgrounds/throne_room.png",
+    "ending2": "resources/backgrounds/imperial_garden.png",
+    "special_event1": "resources/backgrounds/cold_palace.png"
+  }
+}

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凤临朝：角色信息</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 游戏配置数据 -->
+    <script src="game-data.js"></script>
+    <script src="main.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: linear-gradient(135deg, #2F4F4F 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+            opacity: 0.3;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+        
+        .title {
+            background: linear-gradient(45deg, #D4AF37, #FFD700, #D4AF37);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s ease-in-out infinite;
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .section {
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.95), rgba(139, 0, 0, 0.9));
+            border: 2px solid #D4AF37;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .section-title {
+            color: #D4AF37;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-card {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #D4AF37;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .stat-name {
+            color: #D4AF37;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .stat-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(139, 0, 0, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #D4AF37, #FFD700);
+            transition: width 0.5s ease;
+        }
+        
+        .character-card {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #D4AF37;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .character-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid #D4AF37;
+            object-fit: cover;
+        }
+        
+        .character-info {
+            flex: 1;
+        }
+        
+        .character-name {
+            color: #D4AF37;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        
+        .character-title {
+            color: #ccc;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .affection-level {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .affection-label {
+            color: #D4AF37;
+            font-size: 0.8rem;
+        }
+        
+        .affection-hearts {
+            display: flex;
+            gap: 0.2rem;
+        }
+        
+        .heart {
+            width: 16px;
+            height: 16px;
+            background: #666;
+            clip-path: path('M12,21.35l-1.45-1.32C5.4,15.36,2,12.28,2,8.5 C2,5.42,4.42,3,7.5,3c1.74,0,3.41,0.81,4.5,2.09C13.09,3.81,14.76,3,16.5,3 C19.58,3,22,5.42,22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z');
+            transition: background 0.3s ease;
+        }
+        
+        .heart.filled {
+            background: #ff6b6b;
+        }
+        
+        .progress-section {
+            text-align: center;
+        }
+        
+        .chapter-progress {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #D4AF37;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .chapter-title {
+            color: #D4AF37;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(139, 0, 0, 0.5);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #D4AF37, #FFD700);
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            color: #ccc;
+            font-size: 0.8rem;
+        }
+        
+        .back-button {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid #D4AF37;
+            color: #D4AF37;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-button:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #ccc;
+            padding: 2rem;
+            font-style: italic;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <img id="pageBackground" src="" alt="Background" class="background-image">
+    
+    <button class="back-button" onclick="window.location.href='index.html'">
+        ← 返回主菜单
+    </button>
+    
+    <div class="container">
+        <h1 class="title">角色信息</h1>
+        
+        <!-- 玩家属性 -->
+        <div class="section fade-in">
+            <h2 class="section-title">玩家属性</h2>
+            <div class="stat-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-name">智慧</div>
+                    <div class="stat-value" id="wisdomValue">0</div>
+                    <div class="stat-bar">
+                        <div class="stat-fill" id="wisdomBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-name">勇气</div>
+                    <div class="stat-value" id="courageValue">0</div>
+                    <div class="stat-bar">
+                        <div class="stat-fill" id="courageBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-name">洞察</div>
+                    <div class="stat-value" id="insightValue">0</div>
+                    <div class="stat-bar">
+                        <div class="stat-fill" id="insightBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-name">魅力</div>
+                    <div class="stat-value" id="charmValue">0</div>
+                    <div class="stat-bar">
+                        <div class="stat-fill" id="charmBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 角色好感度 -->
+        <div class="section fade-in">
+            <h2 class="section-title">角色关系</h2>
+            <div id="charactersList">
+                <!-- 角色卡片将在这里动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 游戏进度 -->
+        <div class="section fade-in">
+            <h2 class="section-title">游戏进度</h2>
+            <div class="progress-section" id="progressSection">
+                <!-- 进度信息将在这里动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 成就统计 -->
+        <div class="section fade-in">
+            <h2 class="section-title">成就统计</h2>
+            <div id="achievementsSection">
+                <!-- 成就信息将在这里动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 从配置中加载角色数据
+        const characterData = window.GAME_CHARACTERS_CONFIG?.characters || {};
+        
+        // 游戏状态
+        let gameState = {
+            stats: {
+                wisdom: 0,
+                courage: 0,
+                insight: 0,
+                charm: 0
+            },
+            affection: {
+                gu: 0,
+                xiao: 0,
+                han: 0
+            },
+            choices: [],
+            chapter: 1,
+            playTime: 0
+        };
+        
+        // 初始化页面
+        function initPage() {
+            // 加载背景图片
+            if (typeof window.GAME_RESOURCES_CONFIG !== 'undefined' && window.GAME_RESOURCES_CONFIG.backgrounds) {
+                const bgImg = document.getElementById('pageBackground');
+                bgImg.src = window.GAME_RESOURCES_CONFIG.backgrounds.study_room || '';
+            }
+            
+            loadGameData();
+            updateStats();
+            updateCharacters();
+            updateProgress();
+            updateAchievements();
+            animateElements();
+        }
+        
+        // 加载游戏数据
+        function loadGameData() {
+            const saveData = localStorage.getItem('phoenixGameSave');
+            if (saveData) {
+                const savedState = JSON.parse(saveData);
+                gameState = { ...gameState, ...savedState };
+            }
+        }
+        
+        // 更新属性显示
+        function updateStats() {
+            const maxStat = 10;
+            
+            // 更新数值
+            document.getElementById('wisdomValue').textContent = gameState.stats.wisdom;
+            document.getElementById('courageValue').textContent = gameState.stats.courage;
+            document.getElementById('insightValue').textContent = gameState.stats.insight;
+            document.getElementById('charmValue').textContent = gameState.stats.charm;
+            
+            // 更新进度条
+            document.getElementById('wisdomBar').style.width = (gameState.stats.wisdom / maxStat * 100) + '%';
+            document.getElementById('courageBar').style.width = (gameState.stats.courage / maxStat * 100) + '%';
+            document.getElementById('insightBar').style.width = (gameState.stats.insight / maxStat * 100) + '%';
+            document.getElementById('charmBar').style.width = (gameState.stats.charm / maxStat * 100) + '%';
+        }
+        
+        // 更新角色好感度
+        function updateCharacters() {
+            const charactersList = document.getElementById('charactersList');
+            
+            if (Object.values(gameState.affection).every(val => val === 0)) {
+                charactersList.innerHTML = '<div class="empty-state">暂无角色关系数据<br>开始游戏来建立联系吧</div>';
+                return;
+            }
+            
+            charactersList.innerHTML = '';
+            
+            Object.entries(characterData).forEach(([key, character]) => {
+                const affection = gameState.affection[key] || 0;
+                if (affection > 0) {
+                    const characterCard = createCharacterCard(character, affection);
+                    charactersList.appendChild(characterCard);
+                }
+            });
+        }
+        
+        // 创建角色卡片
+        function createCharacterCard(character, affection) {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            
+            const hearts = Math.min(Math.floor(affection / 2), 5);
+            const heartsHtml = Array(5).fill().map((_, i) => 
+                `<div class="heart ${i < hearts ? 'filled' : ''}"></div>`
+            ).join('');
+            
+            card.innerHTML = `
+                <img src="${character.avatar}" alt="${character.name}" class="character-avatar">
+                <div class="character-info">
+                    <div class="character-name">${character.name}</div>
+                    <div class="character-title">${character.title}</div>
+                    <div class="affection-level">
+                        <span class="affection-label">好感度:</span>
+                        <div class="affection-hearts">${heartsHtml}</div>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        // 更新游戏进度
+        function updateProgress() {
+            const progressSection = document.getElementById('progressSection');
+            
+            const progressData = [
+                {
+                    chapter: '第一章',
+                    title: '冷宫初遇',
+                    progress: Math.min(gameState.choices.length * 25, 100),
+                    description: '穿越成冷宫废妃，结识关键人物'
+                }
+            ];
+            
+            progressSection.innerHTML = progressData.map(data => `
+                <div class="chapter-progress">
+                    <div class="chapter-title">${data.chapter}：${data.title}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${data.progress}%"></div>
+                    </div>
+                    <div class="progress-text">${data.description} (${Math.round(data.progress)}%)</div>
+                </div>
+            `).join('');
+        }
+        
+        // 更新成就统计
+        function updateAchievements() {
+            const achievementsSection = document.getElementById('achievementsSection');
+            
+            const achievements = [
+                {
+                    name: '初次选择',
+                    description: '完成第一个剧情选择',
+                    unlocked: gameState.choices.length > 0,
+                    icon: '🎯'
+                },
+                {
+                    name: '智慧初现',
+                    description: '智慧属性达到3点',
+                    unlocked: gameState.stats.wisdom >= 3,
+                    icon: '🧠'
+                },
+                {
+                    name: '勇气可嘉',
+                    description: '勇气属性达到3点',
+                    unlocked: gameState.stats.courage >= 3,
+                    icon: '💪'
+                },
+                {
+                    name: '洞察先机',
+                    description: '洞察属性达到3点',
+                    unlocked: gameState.stats.insight >= 3,
+                    icon: '👁️'
+                },
+                {
+                    name: '魅力四射',
+                    description: '魅力属性达到3点',
+                    unlocked: gameState.stats.charm >= 3,
+                    icon: '✨'
+                },
+                {
+                    name: '医者仁心',
+                    description: '顾太医好感度达到4点',
+                    unlocked: gameState.affection.gu >= 4,
+                    icon: '💊'
+                },
+                {
+                    name: '王侯将相',
+                    description: '萧王爷好感度达到4点',
+                    unlocked: gameState.affection.xiao >= 4,
+                    icon: '👑'
+                },
+                {
+                    name: '将军情谊',
+                    description: '韩将军好感度达到4点',
+                    unlocked: gameState.affection.han >= 4,
+                    icon: '⚔️'
+                }
+            ];
+            
+            achievementsSection.innerHTML = achievements.map(achievement => `
+                <div class="character-card" style="opacity: ${achievement.unlocked ? '1' : '0.5'}">
+                    <div style="font-size: 2rem; width: 60px; text-align: center;">${achievement.icon}</div>
+                    <div class="character-info">
+                        <div class="character-name" style="color: ${achievement.unlocked ? '#D4AF37' : '#666'}">${achievement.name}</div>
+                        <div class="character-title">${achievement.description}</div>
+                        <div class="character-title" style="color: ${achievement.unlocked ? '#4ade80' : '#666'}">${achievement.unlocked ? '已解锁' : '未解锁'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 添加动画效果
+        function animateElements() {
+            anime({
+                targets: '.section',
+                translateY: [50, 0],
+                opacity: [0, 1],
+                delay: anime.stagger(200),
+                duration: 800,
+                easing: 'easeOutQuart'
+            });
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

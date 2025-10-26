@@ -1,0 +1,25 @@
+{
+  "characters": {
+    "gu": {
+      "name": "顾清弦",
+      "title": "太医院医官",
+      "avatar": "resources/characters/gu_taiyi.png",
+      "description": "温和体贴的医者，医术高明，为人正直。",
+      "maxAffection": 10
+    },
+    "xiao": {
+      "name": "萧王爷",
+      "title": "摄政王",
+      "avatar": "resources/characters/xiao_wangye.png",
+      "description": "霸道冷峻的摄政王，手握重权，心思深沉。",
+      "maxAffection": 10
+    },
+    "han": {
+      "name": "韩将军",
+      "title": "镇国将军",
+      "avatar": "resources/characters/han_general.png",
+      "description": "忠诚勇武的将军，重情重义，武艺高强。",
+      "maxAffection": 10
+    }
+  }
+}

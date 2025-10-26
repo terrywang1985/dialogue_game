@@ -1,0 +1,69 @@
+{
+  "cgGallery": [
+    {
+      "id": "cold_palace",
+      "title": "冷宫初醒",
+      "description": "破败的冷宫中，女主苏清月刚刚穿越醒来，面对陌生的环境和身份。",
+      "image": "resources/backgrounds/cold_palace.png",
+      "unlockCondition": "完成场景一"
+    },
+    {
+      "id": "medical_hall",
+      "title": "太医院相遇",
+      "description": "在药香弥漫的太医院，女主初次遇见温柔的顾太医顾清弦。",
+      "image": "resources/backgrounds/medical_hall.png",
+      "unlockCondition": "完成场景二"
+    },
+    {
+      "id": "imperial_garden",
+      "title": "御花园风波",
+      "description": "精美的御花园中，女主与冷峻的萧王爷展开第一次交锋。",
+      "image": "resources/backgrounds/imperial_garden.png",
+      "unlockCondition": "完成场景三"
+    },
+    {
+      "id": "study_room",
+      "title": "将军情谊",
+      "description": "在宁静的书房外，女主结识了忠诚的韩将军，获得重要盟友。",
+      "image": "resources/backgrounds/study_room.png",
+      "unlockCondition": "完成场景四"
+    },
+    {
+      "id": "throne_room",
+      "title": "权倾天下",
+      "description": "金碧辉煌的大殿，象征着至高无上的权力，等待女主去征服。",
+      "image": "resources/backgrounds/throne_room.png",
+      "unlockCondition": "完成第一章"
+    }
+  ],
+  "storyReview": [
+    {
+      "id": "scene1",
+      "title": "穿越醒来",
+      "scene": "场景一",
+      "preview": "现代女主意外穿越成冷宫废妃，面对陌生的古代环境和身份，需要做出第一个重要选择...",
+      "unlockCondition": "完成场景一"
+    },
+    {
+      "id": "scene2",
+      "title": "初遇顾太医",
+      "scene": "场景二",
+      "preview": "在太医院遇到温柔的顾清弦，这位医术高明的太医似乎对女主的处境很是关心...",
+      "unlockCondition": "完成场景二"
+    },
+    {
+      "id": "scene3",
+      "title": "御花园风波",
+      "scene": "场景三",
+      "preview": "在御花园中遇到霸道冷峻的萧王爷，一场言语交锋让女主展现出不卑不亢的态度...",
+      "unlockCondition": "完成场景三"
+    },
+    {
+      "id": "scene4",
+      "title": "结识韩将军",
+      "scene": "场景四",
+      "preview": "遇到忠诚勇武的韩将军，得知他与苏相有旧，愿意在危难时刻相助...",
+      "unlockCondition": "完成场景四"
+    }
+  ]
+}

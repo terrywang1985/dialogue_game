@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配置检查工具 - 凤临朝</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .check-item {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 10px;
+            border-left: 4px solid #ccc;
+        }
+        
+        .check-item.success {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+        
+        .check-item.error {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+        }
+        
+        .check-item.warning {
+            background: #fef3c7;
+            border-left-color: #f59e0b;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+        
+        .badge.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .badge.error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .badge.warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold mb-6" style="color: #764ba2;">🔍 配置检查工具</h1>
+        
+        <div class="mb-6">
+            <button onclick="checkAll()">开始检查</button>
+            <button onclick="location.href='index.html'" class="ml-4" style="background: #6b7280;">返回主菜单</button>
+        </div>
+        
+        <div id="results">
+            <p class="text-gray-600">点击"开始检查"按钮检查配置文件...</p>
+        </div>
+    </div>
+
+    <script>
+        let storyConfig = null;
+        let resourcesConfig = null;
+        let checkResults = [];
+
+        async function checkAll() {
+            checkResults = [];
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p class="text-blue-600">正在检查配置文件...</p>';
+            
+            // 加载配置文件
+            await loadConfigs();
+            
+            // 执行各项检查
+            checkJSONFormat();
+            checkBasicStructure();
+            checkResourcePaths();
+            checkSceneLinks();
+            checkDialogues();
+            checkChoices();
+            checkEffectsAndConditions();
+            
+            // 显示结果
+            displayResults();
+        }
+
+        async function loadConfigs() {
+            try {
+                const storyResponse = await fetch('config/story_config.json');
+                storyConfig = await storyResponse.json();
+                addResult('success', 'JSON格式', 'story_config.json 格式正确');
+            } catch (error) {
+                addResult('error', 'JSON格式', `story_config.json 加载失败: ${error.message}`);
+            }
+            
+            try {
+                const resourcesResponse = await fetch('config/resources_config.json');
+                resourcesConfig = await resourcesResponse.json();
+                addResult('success', 'JSON格式', 'resources_config.json 格式正确');
+            } catch (error) {
+                addResult('error', 'JSON格式', `resources_config.json 加载失败: ${error.message}`);
+            }
+        }
+
+        function checkJSONFormat() {
+            if (!storyConfig) {
+                addResult('error', 'JSON格式', 'story_config.json 未能加载');
+            }
+            if (!resourcesConfig) {
+                addResult('error', 'JSON格式', 'resources_config.json 未能加载');
+            }
+        }
+
+        function checkBasicStructure() {
+            if (!storyConfig) return;
+            
+            // 检查必需字段
+            if (storyConfig.chapters) {
+                addResult('success', '基本结构', '包含 chapters 字段');
+            } else {
+                addResult('error', '基本结构', '缺少 chapters 字段');
+            }
+            
+            if (storyConfig.startChapter) {
+                addResult('success', '基本结构', `起始章节: ${storyConfig.startChapter}`);
+            } else {
+                addResult('error', '基本结构', '缺少 startChapter 字段');
+            }
+            
+            if (storyConfig.startScene) {
+                addResult('success', '基本结构', `起始场景: ${storyConfig.startScene}`);
+            } else {
+                addResult('error', '基本结构', '缺少 startScene 字段');
+            }
+            
+            // 检查章节数量
+            const chapterCount = Object.keys(storyConfig.chapters || {}).length;
+            if (chapterCount > 0) {
+                addResult('success', '章节检查', `共有 ${chapterCount} 个章节`);
+            } else {
+                addResult('warning', '章节检查', '没有任何章节');
+            }
+        }
+
+        function checkResourcePaths() {
+            if (!resourcesConfig) return;
+            
+            const categories = ['backgrounds', 'characters', 'music', 'sounds', 'cg'];
+            
+            categories.forEach(category => {
+                if (resourcesConfig[category]) {
+                    const count = Object.keys(resourcesConfig[category]).length;
+                    if (count > 0) {
+                        addResult('success', '资源索引', `${category}: ${count} 个资源`);
+                    } else {
+                        addResult('warning', '资源索引', `${category}: 无资源`);
+                    }
+                }
+            });
+        }
+
+        function checkSceneLinks() {
+            if (!storyConfig || !storyConfig.chapters) return;
+            
+            let totalScenes = 0;
+            const allSceneIds = new Set();
+            const referencedScenes = new Set();
+            
+            // 收集所有场景ID
+            Object.values(storyConfig.chapters).forEach(chapter => {
+                if (chapter.scenes) {
+                    Object.keys(chapter.scenes).forEach(sceneId => {
+                        allSceneIds.add(sceneId);
+                        totalScenes++;
+                    });
+                }
+            });
+            
+            // 检查场景引用
+            Object.values(storyConfig.chapters).forEach(chapter => {
+                if (chapter.scenes) {
+                    Object.entries(chapter.scenes).forEach(([sceneId, scene]) => {
+                        if (scene.choices) {
+                            scene.choices.forEach((choice, index) => {
+                                if (choice.nextScene) {
+                                    referencedScenes.add(choice.nextScene);
+                                    
+                                    // 检查nextScene是否存在
+                                    if (choice.nextScene !== 'end' && !allSceneIds.has(choice.nextScene)) {
+                                        addResult('error', '场景链接', 
+                                            `场景 ${sceneId} 的选项 ${index + 1} 指向不存在的场景: ${choice.nextScene}`);
+                                    }
+                                } else {
+                                    addResult('warning', '场景链接', 
+                                        `场景 ${sceneId} 的选项 ${index + 1} 缺少 nextScene`);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            
+            addResult('success', '场景统计', `共有 ${totalScenes} 个场景`);
+            
+            // 检查孤立场景（没有被引用的场景，除了起始场景）
+            const orphanScenes = Array.from(allSceneIds).filter(
+                id => !referencedScenes.has(id) && id !== storyConfig.startScene && id !== 'end'
+            );
+            
+            if (orphanScenes.length > 0) {
+                addResult('warning', '场景链接', 
+                    `发现 ${orphanScenes.length} 个孤立场景（未被引用）: ${orphanScenes.join(', ')}`);
+            }
+        }
+
+        function checkDialogues() {
+            if (!storyConfig || !storyConfig.chapters) return;
+            
+            let totalDialogues = 0;
+            let missingName = 0;
+            let missingText = 0;
+            
+            Object.values(storyConfig.chapters).forEach(chapter => {
+                if (chapter.scenes) {
+                    Object.entries(chapter.scenes).forEach(([sceneId, scene]) => {
+                        if (scene.dialogues && Array.isArray(scene.dialogues)) {
+                            totalDialogues += scene.dialogues.length;
+                            
+                            scene.dialogues.forEach((dialogue, index) => {
+                                if (!dialogue.name) {
+                                    missingName++;
+                                    addResult('warning', '对话检查', 
+                                        `场景 ${sceneId} 对话 ${index + 1} 缺少 name 字段`);
+                                }
+                                if (!dialogue.text) {
+                                    missingText++;
+                                    addResult('error', '对话检查', 
+                                        `场景 ${sceneId} 对话 ${index + 1} 缺少 text 字段`);
+                                }
+                            });
+                        } else {
+                            addResult('warning', '对话检查', `场景 ${sceneId} 没有对话`);
+                        }
+                    });
+                }
+            });
+            
+            addResult('success', '对话统计', `共有 ${totalDialogues} 段对话`);
+        }
+
+        function checkChoices() {
+            if (!storyConfig || !storyConfig.chapters) return;
+            
+            let totalChoices = 0;
+            
+            Object.values(storyConfig.chapters).forEach(chapter => {
+                if (chapter.scenes) {
+                    Object.entries(chapter.scenes).forEach(([sceneId, scene]) => {
+                        if (scene.choices && Array.isArray(scene.choices)) {
+                            totalChoices += scene.choices.length;
+                            
+                            scene.choices.forEach((choice, index) => {
+                                if (!choice.text) {
+                                    addResult('error', '选择检查', 
+                                        `场景 ${sceneId} 选择 ${index + 1} 缺少 text 字段`);
+                                }
+                                if (!choice.hasOwnProperty('nextScene')) {
+                                    addResult('warning', '选择检查', 
+                                        `场景 ${sceneId} 选择 ${index + 1} 缺少 nextScene 字段`);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            
+            addResult('success', '选择统计', `共有 ${totalChoices} 个选择`);
+        }
+
+        function checkEffectsAndConditions() {
+            if (!storyConfig || !storyConfig.chapters) return;
+            
+            const validEffectTypes = ['stat', 'affection', 'addItem', 'removeItem'];
+            const validConditionTypes = ['stat', 'affection', 'hasItem', 'sceneVisited'];
+            const validStats = ['wisdom', 'courage', 'insight', 'charm'];
+            const validAffections = ['gu', 'xiao', 'han'];
+            
+            Object.values(storyConfig.chapters).forEach(chapter => {
+                if (chapter.scenes) {
+                    Object.entries(chapter.scenes).forEach(([sceneId, scene]) => {
+                        if (scene.choices) {
+                            scene.choices.forEach((choice, choiceIndex) => {
+                                // 检查效果
+                                if (choice.effects && Array.isArray(choice.effects)) {
+                                    choice.effects.forEach((effect, effectIndex) => {
+                                        if (!validEffectTypes.includes(effect.type)) {
+                                            addResult('error', '效果检查', 
+                                                `场景 ${sceneId} 选择 ${choiceIndex + 1} 效果 ${effectIndex + 1}: 无效的类型 "${effect.type}"`);
+                                        }
+                                        
+                                        if (effect.type === 'stat' && !validStats.includes(effect.target)) {
+                                            addResult('error', '效果检查', 
+                                                `场景 ${sceneId} 选择 ${choiceIndex + 1} 效果 ${effectIndex + 1}: 无效的属性 "${effect.target}"`);
+                                        }
+                                        
+                                        if (effect.type === 'affection' && !validAffections.includes(effect.target)) {
+                                            addResult('warning', '效果检查', 
+                                                `场景 ${sceneId} 选择 ${choiceIndex + 1} 效果 ${effectIndex + 1}: 未知的角色 "${effect.target}"`);
+                                        }
+                                    });
+                                }
+                                
+                                // 检查条件
+                                if (choice.conditions && Array.isArray(choice.conditions)) {
+                                    choice.conditions.forEach((condition, condIndex) => {
+                                        if (!validConditionTypes.includes(condition.type)) {
+                                            addResult('error', '条件检查', 
+                                                `场景 ${sceneId} 选择 ${choiceIndex + 1} 条件 ${condIndex + 1}: 无效的类型 "${condition.type}"`);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        function addResult(type, category, message) {
+            checkResults.push({ type, category, message });
+        }
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            
+            const successCount = checkResults.filter(r => r.type === 'success').length;
+            const errorCount = checkResults.filter(r => r.type === 'error').length;
+            const warningCount = checkResults.filter(r => r.type === 'warning').length;
+            
+            let html = `
+                <div class="mb-6 p-4 bg-gray-100 rounded-lg">
+                    <h2 class="text-xl font-bold mb-2">检查摘要</h2>
+                    <div class="flex gap-4">
+                        <span class="badge success">✓ 成功: ${successCount}</span>
+                        <span class="badge warning">⚠ 警告: ${warningCount}</span>
+                        <span class="badge error">✗ 错误: ${errorCount}</span>
+                    </div>
+                </div>
+                
+                <h2 class="text-xl font-bold mb-4">详细结果</h2>
+            `;
+            
+            // 按类别分组
+            const grouped = {};
+            checkResults.forEach(result => {
+                if (!grouped[result.category]) {
+                    grouped[result.category] = [];
+                }
+                grouped[result.category].push(result);
+            });
+            
+            // 显示结果
+            Object.entries(grouped).forEach(([category, results]) => {
+                html += `<h3 class="text-lg font-semibold mt-4 mb-2">${category}</h3>`;
+                results.forEach(result => {
+                    const icon = result.type === 'success' ? '✓' : (result.type === 'error' ? '✗' : '⚠');
+                    html += `
+                        <div class="check-item ${result.type}">
+                            <span class="font-bold">${icon}</span> ${result.message}
+                        </div>
+                    `;
+                });
+            });
+            
+            // 总结和建议
+            html += `<div class="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">`;
+            html += `<h3 class="text-lg font-bold mb-2">📋 总结</h3>`;
+            
+            if (errorCount === 0 && warningCount === 0) {
+                html += `<p class="text-green-600 font-bold">🎉 太棒了！配置文件完全正确，可以开始游戏了！</p>`;
+            } else if (errorCount === 0) {
+                html += `<p class="text-yellow-600">⚠️ 配置基本正确，但有 ${warningCount} 个警告需要注意。</p>`;
+            } else {
+                html += `<p class="text-red-600 font-bold">❌ 发现 ${errorCount} 个错误，请修复后再运行游戏。</p>`;
+                html += `<div class="code mt-2">提示：使用VS Code等编辑器的JSON验证功能可以帮助发现语法错误</div>`;
+            }
+            
+            html += `</div>`;
+            
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
