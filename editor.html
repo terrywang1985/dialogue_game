@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凤临朝 - 可视化剧情编辑器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            overflow: hidden;
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        /* 顶部工具栏 */
+        .toolbar {
+            height: 60px;
+            background: #2a2a2a;
+            border-bottom: 2px solid #D4AF37;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 15px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .toolbar-btn {
+            background: linear-gradient(135deg, #D4AF37, #FFD700);
+            color: #1a1a1a;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .toolbar-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+        }
+
+        .toolbar-btn.secondary {
+            background: #4a4a4a;
+            color: #D4AF37;
+        }
+
+        /* 左侧面板 - 节点库 */
+        .left-panel {
+            position: absolute;
+            left: 0;
+            top: 60px;
+            width: 280px;
+            height: calc(100vh - 60px);
+            background: #2a2a2a;
+            border-right: 1px solid #444;
+            overflow-y: auto;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .panel-section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            color: #D4AF37;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #444;
+        }
+
+        .node-template {
+            background: linear-gradient(135deg, #3a3a3a, #2a2a2a);
+            border: 1px solid #555;
+            border-left: 3px solid #D4AF37;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: grab;
+            transition: all 0.3s;
+        }
+
+        .node-template:hover {
+            border-left-color: #FFD700;
+            background: linear-gradient(135deg, #4a4a4a, #3a3a3a);
+            transform: translateX(5px);
+        }
+
+        .node-template:active {
+            cursor: grabbing;
+        }
+
+        .node-template-title {
+            font-weight: bold;
+            color: #FFD700;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .node-template-desc {
+            font-size: 11px;
+            color: #999;
+        }
+
+        /* 右侧面板 - 属性编辑 */
+        .right-panel {
+            position: absolute;
+            right: 0;
+            top: 60px;
+            width: 350px;
+            height: calc(100vh - 60px);
+            background: #2a2a2a;
+            border-left: 1px solid #444;
+            overflow-y: auto;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .property-group {
+            margin-bottom: 20px;
+        }
+
+        .property-label {
+            display: block;
+            color: #D4AF37;
+            font-size: 13px;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .property-input,
+        .property-select,
+        .property-textarea {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .property-input:focus,
+        .property-select:focus,
+        .property-textarea:focus {
+            outline: none;
+            border-color: #D4AF37;
+        }
+
+        .property-textarea {
+            min-height: 80px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        /* 画布区域 */
+        .canvas-container {
+            position: absolute;
+            left: 280px;
+            top: 60px;
+            right: 350px;
+            height: calc(100vh - 60px);
+            background: 
+                linear-gradient(90deg, #2a2a2a 1px, transparent 1px),
+                linear-gradient(#2a2a2a 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: 0 0;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .canvas-container.grabbing {
+            cursor: grabbing;
+        }
+
+        .canvas {
+            position: relative;
+            width: 5000px;
+            height: 5000px;
+            transform-origin: 0 0;
+        }
+
+        /* 节点样式 */
+        .node {
+            position: absolute;
+            min-width: 200px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            cursor: move;
+            transition: box-shadow 0.3s;
+        }
+
+        .node.selected {
+            box-shadow: 0 0 0 2px #D4AF37, 0 4px 12px rgba(212, 175, 55, 0.5);
+        }
+
+        .node-header {
+            padding: 10px 12px;
+            background: linear-gradient(135deg, #3a3a3a, #2a2a2a);
+            border-radius: 8px 8px 0 0;
+            border-bottom: 2px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+        }
+
+        .node-header:active {
+            cursor: grabbing;
+        }
+
+        /* 不同节点类型的颜色 */
+        .node.chapter .node-header { border-color: #9C27B0; }
+        .node.scene .node-header { border-color: #2196F3; }
+        .node.dialogue .node-header { border-color: #4CAF50; }
+        .node.choice .node-header { border-color: #FF9800; }
+
+        .node-title {
+            font-weight: bold;
+            font-size: 13px;
+            color: #fff;
+            flex: 1;
+        }
+
+        .node-delete {
+            background: #c0392b;
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .node-body {
+            padding: 12px;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .node-field {
+            margin-bottom: 8px;
+        }
+
+        .node-field-label {
+            color: #D4AF37;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+
+        /* 连接点 */
+        .node-port {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #D4AF37;
+            border: 2px solid #1a1a1a;
+            border-radius: 50%;
+            cursor: crosshair;
+            z-index: 10;
+        }
+
+        .node-port.input {
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .node-port.output {
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .node-port:hover {
+            background: #FFD700;
+            transform: translateY(-50%) scale(1.3);
+        }
+
+        /* 连线 */
+        .connections-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5000px;
+            height: 5000px;
+            pointer-events: none;
+            z-index: 1;
+            transform-origin: 0 0;
+        }
+
+        .connection-line {
+            fill: none;
+            stroke: #D4AF37;
+            stroke-width: 2;
+            pointer-events: stroke;
+            cursor: pointer;
+        }
+
+        .connection-line:hover {
+            stroke: #FFD700;
+            stroke-width: 3;
+        }
+
+        .temp-connection {
+            stroke: #999;
+            stroke-dasharray: 5, 5;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #D4AF37;
+        }
+
+        /* 迷你地图 */
+        .minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            background: rgba(42, 42, 42, 0.9);
+            border: 1px solid #D4AF37;
+            border-radius: 8px;
+            z-index: 200;
+        }
+
+        .minimap-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+
+        /* 快捷键提示 */
+        .shortcuts {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(42, 42, 42, 0.9);
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 11px;
+            color: #999;
+            z-index: 200;
+        }
+
+        .shortcuts-title {
+            color: #D4AF37;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .shortcut-item {
+            margin: 3px 0;
+        }
+
+        .shortcut-key {
+            background: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #D4AF37;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部工具栏 -->
+    <div class="toolbar">
+        <div style="color: #D4AF37; font-weight: bold; font-size: 18px; margin-right: 20px;">
+            📝 凤临朝剧情编辑器
+        </div>
+        
+        <button class="toolbar-btn" onclick="editor.newChapter()">
+            ➕ 新建章节
+        </button>
+        
+        <button class="toolbar-btn secondary" onclick="editor.loadChapter()">
+            📂 加载草稿
+        </button>
+        
+        <button class="toolbar-btn secondary" onclick="document.getElementById('jsonFileInput').click()">
+            📥 导入JSON
+        </button>
+        
+        <input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="editor.importJSON(event)">
+        
+        <button class="toolbar-btn secondary" onclick="editor.saveChapter()">
+            💾 保存草稿
+        </button>
+        
+        <button class="toolbar-btn secondary" onclick="editor.exportJSON()">
+            📤 导出JSON
+        </button>
+        
+        <button class="toolbar-btn secondary" onclick="editor.clearCanvas()">
+            🗑️ 清空画布
+        </button>
+        
+        <div style="flex: 1;"></div>
+        
+        <button class="toolbar-btn secondary" onclick="editor.autoLayout()">
+            🎯 自动布局
+        </button>
+        
+        <button class="toolbar-btn secondary" onclick="editor.zoomIn()">
+            🔍+
+        </button>
+        
+        <button class="toolbar-btn secondary" onclick="editor.zoomOut()">
+            🔍-
+        </button>
+        
+        <button class="toolbar-btn secondary" onclick="editor.resetZoom()">
+            ↺ 重置
+        </button>
+    </div>
+
+    <!-- 左侧节点库 -->
+    <div class="left-panel">
+        <div class="panel-section">
+            <div class="section-title">📚 基础节点</div>
+            
+            <div class="node-template" draggable="true" data-type="chapter">
+                <div class="node-template-title">📖 章节节点</div>
+                <div class="node-template-desc">创建新章节，设置章节标题和描述</div>
+            </div>
+            
+            <div class="node-template" draggable="true" data-type="scene">
+                <div class="node-template-title">🎬 场景节点</div>
+                <div class="node-template-desc">创建场景，配置背景图和BGM</div>
+            </div>
+            
+            <div class="node-template" draggable="true" data-type="dialogue">
+                <div class="node-template-title">💬 对话节点</div>
+                <div class="node-template-desc">添加角色对话和旁白</div>
+            </div>
+            
+            <div class="node-template" draggable="true" data-type="choice">
+                <div class="node-template-title">🔀 选择节点</div>
+                <div class="node-template-desc">创建分支选择，设置属性变化</div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="section-title">📊 当前章节信息</div>
+            <div style="font-size: 12px; color: #999;">
+                <div style="margin-bottom: 6px;">
+                    <span style="color: #D4AF37;">章节ID:</span> 
+                    <span id="info-chapter-id">未设置</span>
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <span style="color: #D4AF37;">节点数:</span> 
+                    <span id="info-node-count">0</span>
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <span style="color: #D4AF37;">连接数:</span> 
+                    <span id="info-connection-count">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 画布区域 -->
+    <div class="canvas-container" id="canvasContainer">
+        <svg class="connections-svg" id="connectionsSvg">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="10" 
+                        refX="9" refY="3" orient="auto">
+                    <polygon points="0 0, 10 3, 0 6" fill="#D4AF37" />
+                </marker>
+            </defs>
+        </svg>
+        <div class="canvas" id="canvas"></div>
+    </div>
+
+    <!-- 右侧属性面板 -->
+    <div class="right-panel" id="rightPanel">
+        <div style="text-align: center; color: #666; padding-top: 50px;">
+            选择一个节点查看属性
+        </div>
+    </div>
+
+    <!-- 快捷键提示 -->
+    <div class="shortcuts">
+        <div class="shortcuts-title">⌨️ 快捷键</div>
+        <div class="shortcut-item">
+            <span class="shortcut-key">Del</span> 删除选中节点
+        </div>
+        <div class="shortcut-item">
+            <span class="shortcut-key">Ctrl+S</span> 保存章节
+        </div>
+        <div class="shortcut-item">
+            <span class="shortcut-key">Ctrl+Z</span> 撤销
+        </div>
+        <div class="shortcut-item">
+            <span class="shortcut-key">空格+拖拽</span> 移动画布
+        </div>
+    </div>
+
+    <script src="game-data.js"></script>
+    <script>
+        class StoryEditor {
+            constructor() {
+                this.nodes = new Map(); // 节点集合
+                this.connections = []; // 连接集合
+                this.selectedNode = null;
+                this.nodeIdCounter = 1;
+                this.connectionIdCounter = 1;
+                
+                // 画布相关
+                this.canvas = document.getElementById('canvas');
+                this.canvasContainer = document.getElementById('canvasContainer');
+                this.connectionsSvg = document.getElementById('connectionsSvg');
+                
+                // 平移和缩放
+                this.offset = { x: 500, y: 500 };
+                this.scale = 1;
+                this.isPanning = false;
+                this.panStart = { x: 0, y: 0 };
+                
+                // 连线相关
+                this.isConnecting = false;
+                this.connectingFrom = null;
+                this.tempLine = null;
+                
+                // 资源列表
+                this.resources = {
+                    backgrounds: [],
+                    characters: [],
+                    music: [],
+                    sounds: []
+                };
+                
+                this.currentChapter = {
+                    chapterId: '',
+                    title: '',
+                    description: '',
+                    startScene: ''
+                };
+                
+                this.init();
+            }
+            
+            async init() {
+                this.setupEventListeners();
+                await this.loadResources();
+                this.updateInfo();
+            }
+            
+            // 加载资源列表
+            async loadResources() {
+                if (window.GAME_RESOURCES_CONFIG) {
+                    this.resources.backgrounds = Object.keys(window.GAME_RESOURCES_CONFIG.backgrounds || {});
+                    this.resources.characters = Object.keys(window.GAME_RESOURCES_CONFIG.characters || {});
+                    this.resources.music = Object.keys(window.GAME_RESOURCES_CONFIG.music || {});
+                    this.resources.sounds = Object.keys(window.GAME_RESOURCES_CONFIG.sounds || {});
+                }
+                
+                console.log('📦 已加载资源:', this.resources);
+            }
+            
+            // 设置事件监听
+            setupEventListeners() {
+                // 拖拽节点模板
+                document.querySelectorAll('.node-template').forEach(template => {
+                    template.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('nodeType', template.dataset.type);
+                    });
+                });
+                
+                // 画布拖放
+                this.canvasContainer.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                
+                this.canvasContainer.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const nodeType = e.dataTransfer.getData('nodeType');
+                    if (nodeType) {
+                        const rect = this.canvasContainer.getBoundingClientRect();
+                        const x = (e.clientX - rect.left - this.offset.x) / this.scale;
+                        const y = (e.clientY - rect.top - this.offset.y) / this.scale;
+                        this.createNode(nodeType, x, y);
+                    }
+                });
+                
+                // 画布平移
+                this.canvasContainer.addEventListener('mousedown', (e) => {
+                    if (e.target === this.canvasContainer || e.target === this.canvas) {
+                        this.isPanning = true;
+                        this.panStart = { x: e.clientX - this.offset.x, y: e.clientY - this.offset.y };
+                        this.canvasContainer.classList.add('grabbing');
+                    }
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (this.isPanning) {
+                        this.offset.x = e.clientX - this.panStart.x;
+                        this.offset.y = e.clientY - this.panStart.y;
+                        this.updateCanvasTransform();
+                    }
+                    
+                    if (this.isConnecting && this.tempLine) {
+                        const rect = this.canvasContainer.getBoundingClientRect();
+                        const x = (e.clientX - rect.left - this.offset.x) / this.scale;
+                        const y = (e.clientY - rect.top - this.offset.y) / this.scale;
+                        this.updateTempLine(x, y);
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    this.isPanning = false;
+                    this.canvasContainer.classList.remove('grabbing');
+                    
+                    if (this.isConnecting) {
+                        this.cancelConnection();
+                    }
+                });
+                
+                // 键盘快捷键
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Delete' && this.selectedNode) {
+                        this.deleteNode(this.selectedNode);
+                    }
+                    
+                    if (e.ctrlKey && e.key === 's') {
+                        e.preventDefault();
+                        this.saveChapter();
+                    }
+                });
+                
+                // 鼠标滚轮缩放
+                this.canvasContainer.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    this.scale *= delta;
+                    this.scale = Math.max(0.1, Math.min(3, this.scale));
+                    this.updateCanvasTransform();
+                });
+            }
+            
+            // 更新画布变换
+            updateCanvasTransform() {
+                this.canvas.style.transform = `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale})`;
+                this.connectionsSvg.style.transform = `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale})`;
+                this.updateAllConnections();
+            }
+            
+            // 创建节点
+            createNode(type, x, y) {
+                const nodeId = `node_${this.nodeIdCounter++}`;
+                const node = {
+                    id: nodeId,
+                    type: type,
+                    x: x,
+                    y: y,
+                    data: this.getDefaultNodeData(type)
+                };
+                
+                this.nodes.set(nodeId, node);
+                this.renderNode(node);
+                this.updateInfo();
+                
+                return nodeId;
+            }
+            
+            // 获取默认节点数据
+            getDefaultNodeData(type) {
+                switch (type) {
+                    case 'chapter':
+                        return {
+                            chapterId: `chapter${this.nodeIdCounter}`,
+                            title: '新章节',
+                            description: '章节描述'
+                        };
+                    case 'scene':
+                        return {
+                            sceneId: `scene${this.nodeIdCounter}`,
+                            background: '',
+                            bgm: ''
+                        };
+                    case 'dialogue':
+                        return {
+                            name: '角色名',
+                            text: '对话内容',
+                            character: ''
+                        };
+                    case 'choice':
+                        return {
+                            text: '选择文本',
+                            effects: [],
+                            conditions: []
+                        };
+                    default:
+                        return {};
+                }
+            }
+            
+            // 渲染节点
+            renderNode(node) {
+                const nodeEl = document.createElement('div');
+                nodeEl.className = `node ${node.type}`;
+                nodeEl.id = node.id;
+                nodeEl.style.left = node.x + 'px';
+                nodeEl.style.top = node.y + 'px';
+                
+                // 节点图标
+                const icons = {
+                    chapter: '📖',
+                    scene: '🎬',
+                    dialogue: '💬',
+                    choice: '🔀'
+                };
+                
+                const titles = {
+                    chapter: '章节',
+                    scene: '场景',
+                    dialogue: '对话',
+                    choice: '选择'
+                };
+                
+                nodeEl.innerHTML = `
+                    <div class="node-header">
+                        <span class="node-title">${icons[node.type]} ${titles[node.type]}: ${this.getNodeDisplayName(node)}</span>
+                        <button class="node-delete" onclick="editor.deleteNode('${node.id}')">×</button>
+                    </div>
+                    <div class="node-body">
+                        ${this.renderNodeBody(node)}
+                    </div>
+                    <div class="node-port input" data-node="${node.id}" data-port="input"></div>
+                    <div class="node-port output" data-node="${node.id}" data-port="output"></div>
+                `;
+                
+                // 节点拖动
+                const header = nodeEl.querySelector('.node-header');
+                let isDragging = false;
+                let dragStart = { x: 0, y: 0 };
+                
+                header.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    dragStart = {
+                        x: e.clientX / this.scale - node.x,
+                        y: e.clientY / this.scale - node.y
+                    };
+                    this.selectNode(node.id);
+                    e.stopPropagation();
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        node.x = e.clientX / this.scale - dragStart.x;
+                        node.y = e.clientY / this.scale - dragStart.y;
+                        nodeEl.style.left = node.x + 'px';
+                        nodeEl.style.top = node.y + 'px';
+                        this.updateNodeConnections(node.id);
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+                
+                // 连接点事件
+                const inputPort = nodeEl.querySelector('.node-port.input');
+                const outputPort = nodeEl.querySelector('.node-port.output');
+                
+                outputPort.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    this.startConnection(node.id);
+                });
+                
+                inputPort.addEventListener('mouseup', (e) => {
+                    e.stopPropagation();
+                    if (this.isConnecting) {
+                        this.completeConnection(node.id);
+                    }
+                });
+                
+                // 点击选中
+                nodeEl.addEventListener('click', (e) => {
+                    if (e.target === nodeEl || e.target.closest('.node-body')) {
+                        this.selectNode(node.id);
+                    }
+                });
+                
+                this.canvas.appendChild(nodeEl);
+            }
+            
+            // 获取节点显示名称
+            getNodeDisplayName(node) {
+                switch (node.type) {
+                    case 'chapter':
+                        return node.data.title || '未命名';
+                    case 'scene':
+                        return node.data.sceneId || '未命名';
+                    case 'dialogue':
+                        return node.data.name || '未命名';
+                    case 'choice':
+                        return node.data.text?.substring(0, 10) || '未命名';
+                    default:
+                        return '未命名';
+                }
+            }
+            
+            // 渲染节点内容
+            renderNodeBody(node) {
+                switch (node.type) {
+                    case 'chapter':
+                        return `
+                            <div class="node-field">
+                                <span class="node-field-label">ID:</span>${node.data.chapterId}
+                            </div>
+                        `;
+                    case 'scene':
+                        return `
+                            <div class="node-field">
+                                <span class="node-field-label">背景:</span>${node.data.background || '未设置'}
+                            </div>
+                        `;
+                    case 'dialogue':
+                        return `
+                            <div class="node-field">
+                                <span class="node-field-label">内容:</span>${(node.data.text || '').substring(0, 20)}...
+                            </div>
+                        `;
+                    case 'choice':
+                        return `
+                            <div class="node-field">
+                                <span class="node-field-label">选项:</span>${(node.data.text || '').substring(0, 20)}...
+                            </div>
+                        `;
+                    default:
+                        return '';
+                }
+            }
+            
+            // 选中节点
+            selectNode(nodeId) {
+                // 取消之前的选中
+                if (this.selectedNode) {
+                    const prevNode = document.getElementById(this.selectedNode);
+                    if (prevNode) prevNode.classList.remove('selected');
+                }
+                
+                this.selectedNode = nodeId;
+                const nodeEl = document.getElementById(nodeId);
+                if (nodeEl) nodeEl.classList.add('selected');
+                
+                this.showNodeProperties(nodeId);
+            }
+            
+            // 显示节点属性
+            showNodeProperties(nodeId) {
+                const node = this.nodes.get(nodeId);
+                if (!node) return;
+                
+                const panel = document.getElementById('rightPanel');
+                
+                switch (node.type) {
+                    case 'chapter':
+                        panel.innerHTML = this.renderChapterProperties(node);
+                        break;
+                    case 'scene':
+                        panel.innerHTML = this.renderSceneProperties(node);
+                        break;
+                    case 'dialogue':
+                        panel.innerHTML = this.renderDialogueProperties(node);
+                        break;
+                    case 'choice':
+                        panel.innerHTML = this.renderChoiceProperties(node);
+                        break;
+                }
+                
+                this.attachPropertyListeners(node);
+            }
+            
+            // 渲染章节属性
+            renderChapterProperties(node) {
+                return `
+                    <h3 style="color: #D4AF37; margin-bottom: 20px;">📖 章节属性</h3>
+                    
+                    <div class="property-group">
+                        <label class="property-label">章节ID</label>
+                        <input type="text" class="property-input" id="prop-chapterId" value="${node.data.chapterId || ''}">
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">章节标题</label>
+                        <input type="text" class="property-input" id="prop-title" value="${node.data.title || ''}">
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">章节描述</label>
+                        <textarea class="property-textarea" id="prop-description">${node.data.description || ''}</textarea>
+                    </div>
+                `;
+            }
+            
+            // 渲染场景属性
+            renderSceneProperties(node) {
+                const bgOptions = this.resources.backgrounds.map(bg => 
+                    `<option value="${bg}" ${node.data.background === bg ? 'selected' : ''}>${bg}</option>`
+                ).join('');
+                
+                const musicOptions = this.resources.music.map(music => 
+                    `<option value="${music}" ${node.data.bgm === music ? 'selected' : ''}>${music}</option>`
+                ).join('');
+                
+                return `
+                    <h3 style="color: #D4AF37; margin-bottom: 20px;">🎬 场景属性</h3>
+                    
+                    <div class="property-group">
+                        <label class="property-label">场景ID</label>
+                        <input type="text" class="property-input" id="prop-sceneId" value="${node.data.sceneId || ''}">
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">背景图</label>
+                        <select class="property-select" id="prop-background">
+                            <option value="">选择背景</option>
+                            ${bgOptions}
+                        </select>
+                        <div style="margin-top: 5px; font-size: 11px; color: #666;">
+                            资源路径: resources/backgrounds/
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">背景音乐</label>
+                        <select class="property-select" id="prop-bgm">
+                            <option value="">选择音乐</option>
+                            ${musicOptions}
+                        </select>
+                        <div style="margin-top: 5px; font-size: 11px; color: #666;">
+                            资源路径: resources/music/
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 渲染对话属性
+            renderDialogueProperties(node) {
+                const charOptions = this.resources.characters.map(char => 
+                    `<option value="${char}" ${node.data.character === char ? 'selected' : ''}>${char}</option>`
+                ).join('');
+                
+                return `
+                    <h3 style="color: #D4AF37; margin-bottom: 20px;">💬 对话属性</h3>
+                    
+                    <div class="property-group">
+                        <label class="property-label">角色名称</label>
+                        <input type="text" class="property-input" id="prop-name" value="${node.data.name || ''}">
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">对话内容</label>
+                        <textarea class="property-textarea" id="prop-text" style="min-height: 120px;">${node.data.text || ''}</textarea>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">角色立绘</label>
+                        <select class="property-select" id="prop-character">
+                            <option value="">无立绘</option>
+                            ${charOptions}
+                        </select>
+                        <div style="margin-top: 5px; font-size: 11px; color: #666;">
+                            资源路径: resources/characters/
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 渲染选择属性
+            renderChoiceProperties(node) {
+                return `
+                    <h3 style="color: #D4AF37; margin-bottom: 20px;">🔀 选择属性</h3>
+                    
+                    <div class="property-group">
+                        <label class="property-label">选择文本</label>
+                        <textarea class="property-textarea" id="prop-text">${node.data.text || ''}</textarea>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">属性效果</label>
+                        <div style="font-size: 11px; color: #999; margin-bottom: 8px;">
+                            格式: wisdom+1, courage-1, gu_affection+2
+                        </div>
+                        <textarea class="property-textarea" id="prop-effects" placeholder="wisdom+1&#10;courage+1">${this.formatEffects(node.data.effects)}</textarea>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">显示条件</label>
+                        <div style="font-size: 11px; color: #999; margin-bottom: 8px;">
+                            格式: wisdom>=2, courage>=3
+                        </div>
+                        <textarea class="property-textarea" id="prop-conditions" placeholder="wisdom>=2">${this.formatConditions(node.data.conditions)}</textarea>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">跳转场景</label>
+                        <input type="text" class="property-input" id="prop-nextScene" value="${node.data.nextScene || ''}" placeholder="scene2 或 chapter2_scene1">
+                        <div style="margin-top: 5px; font-size: 11px; color: #666;">
+                            提示: 跨章节使用 chapter2_scene1 格式
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 格式化效果数组
+            formatEffects(effects) {
+                if (!effects || effects.length === 0) return '';
+                return effects.map(e => `${e.target}${e.value >= 0 ? '+' : ''}${e.value}`).join('\n');
+            }
+            
+            // 格式化条件数组
+            formatConditions(conditions) {
+                if (!conditions || conditions.length === 0) return '';
+                return conditions.map(c => `${c.target}>=${c.value}`).join('\n');
+            }
+            
+            // 绑定属性监听器
+            attachPropertyListeners(node) {
+                const inputs = document.querySelectorAll('.property-input, .property-select, .property-textarea');
+                inputs.forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const propName = e.target.id.replace('prop-', '');
+                        
+                        if (propName === 'effects') {
+                            node.data.effects = this.parseEffects(e.target.value);
+                        } else if (propName === 'conditions') {
+                            node.data.conditions = this.parseConditions(e.target.value);
+                        } else {
+                            node.data[propName] = e.target.value;
+                        }
+                        
+                        this.updateNodeDisplay(node.id);
+                    });
+                });
+            }
+            
+            // 解析效果文本
+            parseEffects(text) {
+                if (!text.trim()) return [];
+                const lines = text.split('\n').filter(l => l.trim());
+                return lines.map(line => {
+                    const match = line.match(/(\w+)([+-]\d+)/);
+                    if (match) {
+                        const target = match[1];
+                        const value = parseInt(match[2]);
+                        
+                        // 判断类型
+                        let type = 'stat';
+                        if (target.includes('affection') || ['gu', 'xiao', 'han'].includes(target)) {
+                            type = 'affection';
+                            return { type, target: target.replace('_affection', ''), value };
+                        }
+                        
+                        return { type, target, value };
+                    }
+                    return null;
+                }).filter(e => e !== null);
+            }
+            
+            // 解析条件文本
+            parseConditions(text) {
+                if (!text.trim()) return [];
+                const lines = text.split('\n').filter(l => l.trim());
+                return lines.map(line => {
+                    const match = line.match(/(\w+)>=(\d+)/);
+                    if (match) {
+                        return {
+                            type: 'stat',
+                            target: match[1],
+                            value: parseInt(match[2])
+                        };
+                    }
+                    return null;
+                }).filter(c => c !== null);
+            }
+            
+            // 更新节点显示
+            updateNodeDisplay(nodeId) {
+                const node = this.nodes.get(nodeId);
+                if (!node) return;
+                
+                const nodeEl = document.getElementById(nodeId);
+                if (!nodeEl) return;
+                
+                const titleEl = nodeEl.querySelector('.node-title');
+                const bodyEl = nodeEl.querySelector('.node-body');
+                
+                const icons = { chapter: '📖', scene: '🎬', dialogue: '💬', choice: '🔀' };
+                const titles = { chapter: '章节', scene: '场景', dialogue: '对话', choice: '选择' };
+                
+                titleEl.textContent = `${icons[node.type]} ${titles[node.type]}: ${this.getNodeDisplayName(node)}`;
+                bodyEl.innerHTML = this.renderNodeBody(node);
+            }
+            
+            // 开始连接
+            startConnection(fromNodeId) {
+                this.isConnecting = true;
+                this.connectingFrom = fromNodeId;
+                
+                const fromNode = this.nodes.get(fromNodeId);
+                const fromEl = document.getElementById(fromNodeId);
+                
+                const startX = fromNode.x + fromEl.offsetWidth;
+                const startY = fromNode.y + fromEl.offsetHeight / 2;
+                
+                this.tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                this.tempLine.classList.add('connection-line', 'temp-connection');
+                this.tempLine.setAttribute('marker-end', 'url(#arrowhead)');
+                this.connectionsSvg.appendChild(this.tempLine);
+            }
+            
+            // 更新临时连线
+            updateTempLine(endX, endY) {
+                if (!this.tempLine || !this.connectingFrom) return;
+                
+                const fromNode = this.nodes.get(this.connectingFrom);
+                const fromEl = document.getElementById(this.connectingFrom);
+                
+                const startX = fromNode.x + fromEl.offsetWidth;
+                const startY = fromNode.y + fromEl.offsetHeight / 2;
+                
+                const path = this.createCurvePath(startX, startY, endX, endY);
+                this.tempLine.setAttribute('d', path);
+            }
+            
+            // 完成连接
+            completeConnection(toNodeId) {
+                if (!this.isConnecting || !this.connectingFrom || this.connectingFrom === toNodeId) {
+                    this.cancelConnection();
+                    return;
+                }
+                
+                // 检查是否已存在连接
+                const existingConnection = this.connections.find(
+                    c => c.from === this.connectingFrom && c.to === toNodeId
+                );
+                
+                if (!existingConnection) {
+                    const connection = {
+                        id: `conn_${this.connectionIdCounter++}`,
+                        from: this.connectingFrom,
+                        to: toNodeId
+                    };
+                    
+                    this.connections.push(connection);
+                    this.renderConnection(connection);
+                }
+                
+                this.cancelConnection();
+                this.updateInfo();
+            }
+            
+            // 取消连接
+            cancelConnection() {
+                this.isConnecting = false;
+                this.connectingFrom = null;
+                
+                if (this.tempLine) {
+                    this.tempLine.remove();
+                    this.tempLine = null;
+                }
+            }
+            
+            // 渲染连接
+            renderConnection(connection) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                line.id = connection.id;
+                line.classList.add('connection-line');
+                line.setAttribute('marker-end', 'url(#arrowhead)');
+                
+                line.addEventListener('click', () => {
+                    if (confirm('删除此连接？')) {
+                        this.deleteConnection(connection.id);
+                    }
+                });
+                
+                this.connectionsSvg.appendChild(line);
+                this.updateConnection(connection.id);
+            }
+            
+            // 更新连接
+            updateConnection(connectionId) {
+                const connection = this.connections.find(c => c.id === connectionId);
+                if (!connection) return;
+                
+                const fromNode = this.nodes.get(connection.from);
+                const toNode = this.nodes.get(connection.to);
+                if (!fromNode || !toNode) return;
+                
+                const fromEl = document.getElementById(connection.from);
+                const toEl = document.getElementById(connection.to);
+                if (!fromEl || !toEl) return;
+                
+                const fromPort = fromEl.querySelector('.node-port.output');
+                const toPort = toEl.querySelector('.node-port.input');
+                
+                const fromRect = fromPort.getBoundingClientRect();
+                const toRect = toPort.getBoundingClientRect();
+                
+                // 直接使用节点的位置计算，不需要考虑容器偏移
+                const fromNodeRect = fromEl.getBoundingClientRect();
+                const toNodeRect = toEl.getBoundingClientRect();
+                
+                const startX = fromNode.x + fromEl.offsetWidth;
+                const startY = fromNode.y + fromEl.offsetHeight / 2;
+                const endX = toNode.x;
+                const endY = toNode.y + toEl.offsetHeight / 2;
+                
+                const path = this.createCurvePath(startX, startY, endX, endY);
+                const line = document.getElementById(connectionId);
+                if (line) {
+                    line.setAttribute('d', path);
+                }
+            }
+            
+            // 创建曲线路径
+            createCurvePath(x1, y1, x2, y2) {
+                const dx = Math.abs(x2 - x1);
+                const offset = Math.min(dx / 2, 100);
+                
+                return `M ${x1} ${y1} C ${x1 + offset} ${y1}, ${x2 - offset} ${y2}, ${x2} ${y2}`;
+            }
+            
+            // 更新节点的所有连接
+            updateNodeConnections(nodeId) {
+                this.connections.forEach(conn => {
+                    if (conn.from === nodeId || conn.to === nodeId) {
+                        this.updateConnection(conn.id);
+                    }
+                });
+            }
+            
+            // 更新所有连接
+            updateAllConnections() {
+                this.connections.forEach(conn => {
+                    this.updateConnection(conn.id);
+                });
+            }
+            
+            // 删除节点
+            deleteNode(nodeId) {
+                if (!confirm('确定删除此节点？')) return;
+                
+                // 删除相关连接
+                this.connections = this.connections.filter(conn => {
+                    if (conn.from === nodeId || conn.to === nodeId) {
+                        const line = document.getElementById(conn.id);
+                        if (line) line.remove();
+                        return false;
+                    }
+                    return true;
+                });
+                
+                // 删除节点
+                this.nodes.delete(nodeId);
+                const nodeEl = document.getElementById(nodeId);
+                if (nodeEl) nodeEl.remove();
+                
+                if (this.selectedNode === nodeId) {
+                    this.selectedNode = null;
+                    document.getElementById('rightPanel').innerHTML = '<div style="text-align: center; color: #666; padding-top: 50px;">选择一个节点查看属性</div>';
+                }
+                
+                this.updateInfo();
+            }
+            
+            // 删除连接
+            deleteConnection(connectionId) {
+                this.connections = this.connections.filter(c => c.id !== connectionId);
+                const line = document.getElementById(connectionId);
+                if (line) line.remove();
+                this.updateInfo();
+            }
+            
+            // 更新信息显示
+            updateInfo() {
+                document.getElementById('info-chapter-id').textContent = this.currentChapter.chapterId || '未设置';
+                document.getElementById('info-node-count').textContent = this.nodes.size;
+                document.getElementById('info-connection-count').textContent = this.connections.length;
+            }
+            
+            // 新建章节
+            newChapter() {
+                const chapterId = prompt('请输入章节ID (例如: chapter1):', 'chapter1');
+                if (!chapterId) return;
+                
+                const title = prompt('请输入章节标题:', '第一章：冷宫初遇');
+                if (!title) return;
+                
+                this.currentChapter = {
+                    chapterId: chapterId,
+                    title: title,
+                    description: '章节描述',
+                    startScene: 'scene1'
+                };
+                
+                this.clearCanvas();
+                this.updateInfo();
+                
+                alert(`章节 "${title}" 创建成功！\n现在可以添加场景节点了。`);
+            }
+            
+            // 清空画布
+            clearCanvas() {
+                if (this.nodes.size > 0 && !confirm('确定清空画布？所有未保存的数据将丢失！')) {
+                    return;
+                }
+                
+                this.nodes.clear();
+                this.connections = [];
+                this.canvas.innerHTML = '';
+                this.connectionsSvg.innerHTML = '<defs><marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><polygon points="0 0, 10 3, 0 6" fill="#D4AF37" /></marker></defs>';
+                this.selectedNode = null;
+                document.getElementById('rightPanel').innerHTML = '<div style="text-align: center; color: #666; padding-top: 50px;">选择一个节点查看属性</div>';
+                this.updateInfo();
+            }
+            
+            // 导出JSON
+            exportJSON() {
+                if (!this.currentChapter.chapterId) {
+                    alert('请先创建章节！');
+                    return;
+                }
+                
+                const json = this.generateChapterJSON();
+                
+                // 下载JSON文件
+                const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${this.currentChapter.chapterId}_config.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                alert('JSON文件已导出！\n请将文件放到 config/ 目录下，然后运行 convert_json_to_js.py 生成 game-data.js');
+            }
+            
+            // 导入JSON配置文件
+            importJSON(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        this.loadFromJSON(json);
+                        alert(`成功导入章节：${json.title || json.chapterId}`);
+                    } catch (error) {
+                        alert('JSON文件格式错误：' + error.message);
+                        console.error(error);
+                    }
+                };
+                reader.readAsText(file);
+                
+                // 重置input，允许重复导入同一文件
+                event.target.value = '';
+            }
+            
+            // 从JSON加载章节
+            loadFromJSON(json) {
+                // 清空画布
+                this.clearCanvas();
+                
+                // 设置章节信息
+                this.currentChapter = {
+                    chapterId: json.chapterId || 'chapter1',
+                    title: json.title || '未命名章节',
+                    description: json.description || '',
+                    startScene: json.startScene || 'scene1'
+                };
+                
+                this.updateInfo();
+                
+                const scenes = json.scenes || {};
+                const sceneNodeMap = new Map(); // sceneId -> nodeId 映射
+                const dialogueNodeMap = new Map(); // sceneId -> [dialogueNodeIds] 映射
+                
+                let yOffset = 50;
+                const sceneSpacing = 400;
+                const dialogueSpacing = 180;
+                const choiceSpacing = 120;
+                
+                // 第一步：创建所有场景节点
+                Object.entries(scenes).forEach(([sceneId, sceneData], sceneIndex) => {
+                    const sceneNodeId = this.createNode('scene', 100, yOffset);
+                    const sceneNode = this.nodes.get(sceneNodeId);
+                    
+                    sceneNode.data.sceneId = sceneId;
+                    sceneNode.data.background = sceneData.background || '';
+                    sceneNode.data.bgm = sceneData.bgm || '';
+                    
+                    sceneNodeMap.set(sceneId, sceneNodeId);
+                    dialogueNodeMap.set(sceneId, []);
+                    
+                    this.updateNodeDisplay(sceneNodeId);
+                    
+                    // 第二步：创建该场景的对话节点
+                    const dialogues = sceneData.dialogues || [];
+                    dialogues.forEach((dialogue, dialogueIndex) => {
+                        const dialogueNodeId = this.createNode('dialogue', 450, yOffset + dialogueIndex * dialogueSpacing);
+                        const dialogueNode = this.nodes.get(dialogueNodeId);
+                        
+                        dialogueNode.data.name = dialogue.name || '';
+                        dialogueNode.data.text = dialogue.text || '';
+                        dialogueNode.data.character = dialogue.character || '';
+                        
+                        dialogueNodeMap.get(sceneId).push(dialogueNodeId);
+                        
+                        this.updateNodeDisplay(dialogueNodeId);
+                        
+                        // 连接场景到第一个对话
+                        if (dialogueIndex === 0) {
+                            const connection = {
+                                id: `conn_${this.connectionIdCounter++}`,
+                                from: sceneNodeId,
+                                to: dialogueNodeId
+                            };
+                            this.connections.push(connection);
+                            this.renderConnection(connection);
+                        } else {
+                            // 连接前一个对话到当前对话
+                            const prevDialogueId = dialogueNodeMap.get(sceneId)[dialogueIndex - 1];
+                            const connection = {
+                                id: `conn_${this.connectionIdCounter++}`,
+                                from: prevDialogueId,
+                                to: dialogueNodeId
+                            };
+                            this.connections.push(connection);
+                            this.renderConnection(connection);
+                        }
+                    });
+                    
+                    // 第三步：创建该场景的选择节点
+                    const choices = sceneData.choices || [];
+                    const lastDialogueId = dialogueNodeMap.get(sceneId)[dialogues.length - 1];
+                    
+                    choices.forEach((choice, choiceIndex) => {
+                        const choiceNodeId = this.createNode('choice', 850, yOffset + choiceIndex * choiceSpacing);
+                        const choiceNode = this.nodes.get(choiceNodeId);
+                        
+                        choiceNode.data.text = choice.text || '';
+                        choiceNode.data.effects = choice.effects || [];
+                        choiceNode.data.conditions = choice.conditions || [];
+                        choiceNode.data.nextScene = choice.nextScene || '';
+                        
+                        this.updateNodeDisplay(choiceNodeId);
+                        
+                        // 连接最后一个对话到选择
+                        if (lastDialogueId) {
+                            const connection = {
+                                id: `conn_${this.connectionIdCounter++}`,
+                                from: lastDialogueId,
+                                to: choiceNodeId
+                            };
+                            this.connections.push(connection);
+                            this.renderConnection(connection);
+                        }
+                    });
+                    
+                    yOffset += sceneSpacing;
+                });
+                
+                // 第四步：创建场景间的连接（根据nextScene）
+                Object.entries(scenes).forEach(([sceneId, sceneData]) => {
+                    const choices = sceneData.choices || [];
+                    choices.forEach(choice => {
+                        const nextScene = choice.nextScene;
+                        
+                        // 跳过特殊场景
+                        if (!nextScene || nextScene === 'main_menu' || nextScene === 'game_end' || nextScene === 'end') {
+                            return;
+                        }
+                        
+                        // 处理跨章节场景（chapter2:scene1 或 chapter2_scene1）
+                        let targetSceneId = nextScene;
+                        if (nextScene.includes(':')) {
+                            targetSceneId = nextScene.split(':')[1];
+                        } else if (nextScene.includes('_')) {
+                            const parts = nextScene.split('_');
+                            if (parts[0].startsWith('chapter')) {
+                                targetSceneId = parts.slice(1).join('_');
+                            }
+                        }
+                        
+                        // 查找目标场景节点
+                        const targetSceneNodeId = sceneNodeMap.get(targetSceneId);
+                        if (targetSceneNodeId) {
+                            // 找到当前选择节点（通过文本匹配）
+                            const currentSceneNodeId = sceneNodeMap.get(sceneId);
+                            const dialogueIds = dialogueNodeMap.get(sceneId) || [];
+                            const lastDialogueId = dialogueIds[dialogueIds.length - 1];
+                            
+                            // 找到连接到最后对话的所有选择节点
+                            const choiceConnections = this.connections.filter(c => c.from === lastDialogueId);
+                            choiceConnections.forEach(conn => {
+                                const choiceNode = this.nodes.get(conn.to);
+                                if (choiceNode && choiceNode.type === 'choice' && choiceNode.data.nextScene === nextScene) {
+                                    // 创建选择到下一场景的连接
+                                    const sceneConnection = {
+                                        id: `conn_${this.connectionIdCounter++}`,
+                                        from: conn.to,
+                                        to: targetSceneNodeId
+                                    };
+                                    this.connections.push(sceneConnection);
+                                    this.renderConnection(sceneConnection);
+                                }
+                            });
+                        }
+                    });
+                });
+                
+                this.updateInfo();
+                
+                console.log('✅ JSON导入完成', {
+                    章节: this.currentChapter.title,
+                    场景数: sceneNodeMap.size,
+                    节点数: this.nodes.size,
+                    连接数: this.connections.length
+                });
+            }
+            
+            // 生成章节JSON
+            generateChapterJSON() {
+                const scenes = {};
+                
+                // 构建场景图
+                const sceneNodes = Array.from(this.nodes.values()).filter(n => n.type === 'scene');
+                
+                sceneNodes.forEach(sceneNode => {
+                    const sceneId = sceneNode.data.sceneId;
+                    const scene = {
+                        background: sceneNode.data.background || '',
+                        bgm: sceneNode.data.bgm || '',
+                        dialogues: [],
+                        choices: []
+                    };
+                    
+                    // 找到此场景的对话节点
+                    const dialogueConnections = this.connections.filter(c => c.from === sceneNode.id);
+                    dialogueConnections.forEach(conn => {
+                        const dialogueNode = this.nodes.get(conn.to);
+                        if (dialogueNode && dialogueNode.type === 'dialogue') {
+                            scene.dialogues.push({
+                                name: dialogueNode.data.name || '',
+                                text: dialogueNode.data.text || '',
+                                character: dialogueNode.data.character || null,
+                                voice: null
+                            });
+                            
+                            // 找到对话的选择节点
+                            const choiceConnections = this.connections.filter(c => c.from === dialogueNode.id);
+                            choiceConnections.forEach(choiceConn => {
+                                const choiceNode = this.nodes.get(choiceConn.to);
+                                if (choiceNode && choiceNode.type === 'choice') {
+                                    scene.choices.push({
+                                        text: choiceNode.data.text || '',
+                                        effects: choiceNode.data.effects || [],
+                                        nextScene: choiceNode.data.nextScene || '',
+                                        conditions: choiceNode.data.conditions || []
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    
+                    scenes[sceneId] = scene;
+                });
+                
+                return {
+                    "_comment": `${this.currentChapter.title} - 独立配置文件`,
+                    "chapterId": this.currentChapter.chapterId,
+                    "title": this.currentChapter.title,
+                    "description": this.currentChapter.description,
+                    "startScene": this.currentChapter.startScene,
+                    "scenes": scenes
+                };
+            }
+            
+            // 保存章节
+            saveChapter() {
+                const json = this.generateChapterJSON();
+                localStorage.setItem(`chapter_draft_${this.currentChapter.chapterId}`, JSON.stringify({
+                    chapter: this.currentChapter,
+                    nodes: Array.from(this.nodes.entries()),
+                    connections: this.connections
+                }));
+                alert('章节已保存到浏览器本地存储！');
+            }
+            
+            // 加载章节
+            loadChapter() {
+                const chapterId = prompt('请输入要加载的章节ID:', 'chapter1');
+                if (!chapterId) return;
+                
+                const saved = localStorage.getItem(`chapter_draft_${chapterId}`);
+                if (!saved) {
+                    alert('未找到保存的章节！');
+                    return;
+                }
+                
+                const data = JSON.parse(saved);
+                this.clearCanvas();
+                
+                this.currentChapter = data.chapter;
+                this.nodes = new Map(data.nodes);
+                this.connections = data.connections;
+                
+                // 重新渲染
+                this.nodes.forEach(node => this.renderNode(node));
+                this.connections.forEach(conn => this.renderConnection(conn));
+                
+                this.updateInfo();
+                alert('章节加载成功！');
+            }
+            
+            // 自动布局
+            autoLayout() {
+                const sceneNodes = Array.from(this.nodes.values()).filter(n => n.type === 'scene');
+                
+                sceneNodes.forEach((node, index) => {
+                    node.x = 100;
+                    node.y = index * 300;
+                    
+                    const nodeEl = document.getElementById(node.id);
+                    if (nodeEl) {
+                        nodeEl.style.left = node.x + 'px';
+                        nodeEl.style.top = node.y + 'px';
+                    }
+                    
+                    // 布局对话和选择节点
+                    const connections = this.connections.filter(c => c.from === node.id);
+                    connections.forEach((conn, idx) => {
+                        const childNode = this.nodes.get(conn.to);
+                        if (childNode) {
+                            childNode.x = 400;
+                            childNode.y = node.y + idx * 150;
+                            
+                            const childEl = document.getElementById(childNode.id);
+                            if (childEl) {
+                                childEl.style.left = childNode.x + 'px';
+                                childEl.style.top = childNode.y + 'px';
+                            }
+                        }
+                    });
+                });
+                
+                this.updateAllConnections();
+                alert('自动布局完成！');
+            }
+            
+            // 缩放
+            zoomIn() {
+                this.scale = Math.min(this.scale * 1.2, 3);
+                this.updateCanvasTransform();
+            }
+            
+            zoomOut() {
+                this.scale = Math.max(this.scale / 1.2, 0.1);
+                this.updateCanvasTransform();
+            }
+            
+            resetZoom() {
+                this.scale = 1;
+                this.offset = { x: 500, y: 500 };
+                this.updateCanvasTransform();
+            }
+        }
+        
+        // 初始化编辑器
+        const editor = new StoryEditor();
+        
+        console.log('✅ 剧情编辑器已启动');
+    </script>
+</body>
+</html>
