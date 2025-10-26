@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资源检测工具 - 凤临朝</title>
+    <script src="game-data.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #0ff;
+            border-bottom: 2px solid #0ff;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #222;
+            border-left: 4px solid #0f0;
+        }
+        .ok { color: #0f0; }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #444;
+        }
+        th {
+            background: #333;
+            color: #0ff;
+        }
+        .status-ok { background: #1a3a1a; }
+        .status-error { background: #3a1a1a; }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0ff;
+        }
+        #output {
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 凤临朝 - 资源检测工具</h1>
+    
+    <div class="section">
+        <h2>📋 配置检测</h2>
+        <div id="configCheck"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🖼️ 资源加载测试</h2>
+        <button onclick="checkAllResources()">开始检测所有资源</button>
+        <button onclick="exportReport()">导出检测报告</button>
+        <div id="resourceCheck"></div>
+    </div>
+    
+    <div class="section">
+        <h2>📊 检测结果</h2>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const results = {
+            configs: {},
+            resources: [],
+            summary: {}
+        };
+
+        // 检查配置是否加载
+        function checkConfigs() {
+            const output = document.getElementById('configCheck');
+            let html = '<table><tr><th>配置项</th><th>状态</th><th>详情</th></tr>';
+            
+            const configs = [
+                { name: 'GAME_STORY_CONFIG', obj: window.GAME_STORY_CONFIG },
+                { name: 'GAME_RESOURCES_CONFIG', obj: window.GAME_RESOURCES_CONFIG },
+                { name: 'GAME_COLLECTION_CONFIG', obj: window.GAME_COLLECTION_CONFIG },
+                { name: 'GAME_CHARACTERS_CONFIG', obj: window.GAME_CHARACTERS_CONFIG },
+                { name: 'GAME_ACHIEVEMENTS_CONFIG', obj: window.GAME_ACHIEVEMENTS_CONFIG }
+            ];
+            
+            configs.forEach(cfg => {
+                const exists = typeof cfg.obj !== 'undefined';
+                results.configs[cfg.name] = exists;
+                
+                html += `<tr class="${exists ? 'status-ok' : 'status-error'}">
+                    <td>${cfg.name}</td>
+                    <td class="${exists ? 'ok' : 'error'}">${exists ? '✅ 已加载' : '❌ 未找到'}</td>
+                    <td>${exists ? Object.keys(cfg.obj).join(', ') : 'N/A'}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            output.innerHTML = html;
+        }
+
+        // 检查单个资源
+        async function checkResource(type, path) {
+            return new Promise((resolve) => {
+                if (type === 'image') {
+                    const img = new Image();
+                    const timeout = setTimeout(() => {
+                        resolve({ path, type, ok: false, error: 'timeout' });
+                    }, 5000);
+                    
+                    img.onload = () => {
+                        clearTimeout(timeout);
+                        resolve({ path, type, ok: true });
+                    };
+                    img.onerror = (e) => {
+                        clearTimeout(timeout);
+                        resolve({ path, type, ok: false, error: e.type });
+                    };
+                    img.src = path;
+                } else if (type === 'audio') {
+                    const audio = document.createElement('audio');
+                    const timeout = setTimeout(() => {
+                        resolve({ path, type, ok: false, error: 'timeout' });
+                    }, 3000);
+                    
+                    audio.oncanplay = () => {
+                        clearTimeout(timeout);
+                        resolve({ path, type, ok: true });
+                    };
+                    audio.onerror = (e) => {
+                        clearTimeout(timeout);
+                        resolve({ path, type, ok: false, error: e.type });
+                    };
+                    audio.src = path;
+                }
+            });
+        }
+
+        // 检查所有资源
+        async function checkAllResources() {
+            const output = document.getElementById('output');
+            output.innerHTML = '⏳ 检测中，请稍候...\n';
+            
+            const cfg = window.GAME_RESOURCES_CONFIG || {};
+            const list = [];
+            
+            if (cfg.backgrounds) Object.entries(cfg.backgrounds).forEach(([key, path]) => {
+                if (!key.startsWith('_')) list.push({ type: 'image', category: 'backgrounds', key, path });
+            });
+            if (cfg.characters) Object.entries(cfg.characters).forEach(([key, path]) => {
+                if (!key.startsWith('_')) list.push({ type: 'image', category: 'characters', key, path });
+            });
+            if (cfg.cg) Object.entries(cfg.cg).forEach(([key, path]) => {
+                if (!key.startsWith('_')) list.push({ type: 'image', category: 'cg', key, path });
+            });
+            if (cfg.music) Object.entries(cfg.music).forEach(([key, path]) => {
+                if (!key.startsWith('_')) list.push({ type: 'audio', category: 'music', key, path });
+            });
+            if (cfg.sounds) Object.entries(cfg.sounds).forEach(([key, path]) => {
+                if (!key.startsWith('_')) list.push({ type: 'audio', category: 'sounds', key, path });
+            });
+            
+            output.innerHTML += `共 ${list.length} 个资源需要检测\n\n`;
+            
+            results.resources = [];
+            let okCount = 0;
+            let errorCount = 0;
+            
+            for (const item of list) {
+                output.innerHTML += `检测 ${item.category}/${item.key} ... `;
+                const result = await checkResource(item.type, item.path);
+                results.resources.push({ ...item, ...result });
+                
+                if (result.ok) {
+                    output.innerHTML += `<span class="ok">✅ OK</span>\n`;
+                    okCount++;
+                } else {
+                    output.innerHTML += `<span class="error">❌ FAIL (${result.error})</span>\n`;
+                    errorCount++;
+                }
+            }
+            
+            results.summary = {
+                total: list.length,
+                ok: okCount,
+                error: errorCount,
+                timestamp: new Date().toISOString()
+            };
+            
+            output.innerHTML += `\n========== 检测完成 ==========\n`;
+            output.innerHTML += `总计: ${list.length} | 成功: <span class="ok">${okCount}</span> | 失败: <span class="error">${errorCount}</span>\n`;
+            
+            // 显示详细表格
+            showDetailedResults();
+        }
+
+        // 显示详细结果
+        function showDetailedResults() {
+            const output = document.getElementById('resourceCheck');
+            let html = '<h3>详细结果</h3><table><tr><th>类别</th><th>键名</th><th>路径</th><th>状态</th></tr>';
+            
+            results.resources.forEach(r => {
+                html += `<tr class="${r.ok ? 'status-ok' : 'status-error'}">
+                    <td>${r.category}</td>
+                    <td>${r.key}</td>
+                    <td>${r.path}</td>
+                    <td class="${r.ok ? 'ok' : 'error'}">${r.ok ? '✅ OK' : '❌ ' + (r.error || 'FAIL')}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            output.innerHTML = html;
+        }
+
+        // 导出报告
+        function exportReport() {
+            const report = {
+                ...results,
+                userAgent: navigator.userAgent,
+                url: window.location.href
+            };
+            
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resource-check-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            console.log('📄 检测报告:', report);
+        }
+
+        // 页面加载时自动检查配置
+        window.addEventListener('DOMContentLoaded', () => {
+            checkConfigs();
+            
+            // 自动运行资源检测
+            setTimeout(() => {
+                console.log('🔍 开始自动资源检测...');
+                checkAllResources();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

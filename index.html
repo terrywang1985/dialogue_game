@@ -216,10 +216,25 @@
         
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 主页面初始化...');
+            
             // 加载背景图片
             if (typeof window.GAME_RESOURCES_CONFIG !== 'undefined' && window.GAME_RESOURCES_CONFIG.backgrounds) {
                 const bgImg = document.getElementById('pageBackground');
-                bgImg.src = window.GAME_RESOURCES_CONFIG.backgrounds.imperial_garden || '';
+                const bgPath = window.GAME_RESOURCES_CONFIG.backgrounds.imperial_garden || '';
+                console.log('🖼️ 尝试加载背景图:', bgPath);
+                
+                bgImg.onerror = function() {
+                    console.error('❌ 背景图加载失败:', bgPath);
+                    console.error('   完整URL:', this.src);
+                };
+                bgImg.onload = function() {
+                    console.log('✅ 背景图加载成功');
+                };
+                
+                bgImg.src = bgPath;
+            } else {
+                console.error('❌ 未找到资源配置');
             }
             
             createPetals();

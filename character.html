@@ -331,30 +331,47 @@
         // 从配置中加载角色数据
         const characterData = window.GAME_CHARACTERS_CONFIG?.characters || {};
         
-        // 游戏状态
-        let gameState = {
-            stats: {
-                wisdom: 0,
-                courage: 0,
-                insight: 0,
-                charm: 0
-            },
-            affection: {
-                gu: 0,
-                xiao: 0,
-                han: 0
-            },
-            choices: [],
-            chapter: 1,
-            playTime: 0
-        };
+        // 游戏状态（优先使用全局 GameStateManager 实例的状态，避免与全局变量冲突）
+        let gameStateLocal = (window.gameState && typeof window.gameState.getState === 'function')
+            ? window.gameState.getState()
+            : {
+                stats: {
+                    wisdom: 0,
+                    courage: 0,
+                    insight: 0,
+                    charm: 0
+                },
+                affection: {
+                    gu: 0,
+                    xiao: 0,
+                    han: 0
+                },
+                choices: [],
+                chapter: 1,
+                playTime: 0
+            };
         
         // 初始化页面
         function initPage() {
+            console.log('📄 角色信息页面初始化...');
+            
             // 加载背景图片
             if (typeof window.GAME_RESOURCES_CONFIG !== 'undefined' && window.GAME_RESOURCES_CONFIG.backgrounds) {
                 const bgImg = document.getElementById('pageBackground');
-                bgImg.src = window.GAME_RESOURCES_CONFIG.backgrounds.study_room || '';
+                const bgPath = window.GAME_RESOURCES_CONFIG.backgrounds.study_room || '';
+                console.log('🖼️ 尝试加载背景图:', bgPath);
+                
+                bgImg.onerror = function() {
+                    console.error('❌ 背景图加载失败:', bgPath);
+                    console.error('   完整URL:', this.src);
+                };
+                bgImg.onload = function() {
+                    console.log('✅ 背景图加载成功');
+                };
+                
+                bgImg.src = bgPath;
+            } else {
+                console.error('❌ 未找到资源配置');
             }
             
             loadGameData();
@@ -370,7 +387,7 @@
             const saveData = localStorage.getItem('phoenixGameSave');
             if (saveData) {
                 const savedState = JSON.parse(saveData);
-                gameState = { ...gameState, ...savedState };
+                gameStateLocal = { ...gameStateLocal, ...savedState };
             }
         }
         
@@ -379,23 +396,23 @@
             const maxStat = 10;
             
             // 更新数值
-            document.getElementById('wisdomValue').textContent = gameState.stats.wisdom;
-            document.getElementById('courageValue').textContent = gameState.stats.courage;
-            document.getElementById('insightValue').textContent = gameState.stats.insight;
-            document.getElementById('charmValue').textContent = gameState.stats.charm;
+            document.getElementById('wisdomValue').textContent = gameStateLocal.stats.wisdom;
+            document.getElementById('courageValue').textContent = gameStateLocal.stats.courage;
+            document.getElementById('insightValue').textContent = gameStateLocal.stats.insight;
+            document.getElementById('charmValue').textContent = gameStateLocal.stats.charm;
             
             // 更新进度条
-            document.getElementById('wisdomBar').style.width = (gameState.stats.wisdom / maxStat * 100) + '%';
-            document.getElementById('courageBar').style.width = (gameState.stats.courage / maxStat * 100) + '%';
-            document.getElementById('insightBar').style.width = (gameState.stats.insight / maxStat * 100) + '%';
-            document.getElementById('charmBar').style.width = (gameState.stats.charm / maxStat * 100) + '%';
+            document.getElementById('wisdomBar').style.width = (gameStateLocal.stats.wisdom / maxStat * 100) + '%';
+            document.getElementById('courageBar').style.width = (gameStateLocal.stats.courage / maxStat * 100) + '%';
+            document.getElementById('insightBar').style.width = (gameStateLocal.stats.insight / maxStat * 100) + '%';
+            document.getElementById('charmBar').style.width = (gameStateLocal.stats.charm / maxStat * 100) + '%';
         }
         
         // 更新角色好感度
         function updateCharacters() {
             const charactersList = document.getElementById('charactersList');
             
-            if (Object.values(gameState.affection).every(val => val === 0)) {
+            if (Object.values(gameStateLocal.affection).every(val => val === 0)) {
                 charactersList.innerHTML = '<div class="empty-state">暂无角色关系数据<br>开始游戏来建立联系吧</div>';
                 return;
             }
@@ -403,7 +420,7 @@
             charactersList.innerHTML = '';
             
             Object.entries(characterData).forEach(([key, character]) => {
-                const affection = gameState.affection[key] || 0;
+                const affection = gameStateLocal.affection[key] || 0;
                 if (affection > 0) {
                     const characterCard = createCharacterCard(character, affection);
                     charactersList.appendChild(characterCard);
@@ -444,7 +461,7 @@
                 {
                     chapter: '第一章',
                     title: '冷宫初遇',
-                    progress: Math.min(gameState.choices.length * 25, 100),
+                    progress: Math.min(gameStateLocal.choices.length * 25, 100),
                     description: '穿越成冷宫废妃，结识关键人物'
                 }
             ];
@@ -464,56 +481,31 @@
         function updateAchievements() {
             const achievementsSection = document.getElementById('achievementsSection');
             
-            const achievements = [
-                {
-                    name: '初次选择',
-                    description: '完成第一个剧情选择',
-                    unlocked: gameState.choices.length > 0,
-                    icon: '🎯'
-                },
-                {
-                    name: '智慧初现',
-                    description: '智慧属性达到3点',
-                    unlocked: gameState.stats.wisdom >= 3,
-                    icon: '🧠'
-                },
-                {
-                    name: '勇气可嘉',
-                    description: '勇气属性达到3点',
-                    unlocked: gameState.stats.courage >= 3,
-                    icon: '💪'
-                },
-                {
-                    name: '洞察先机',
-                    description: '洞察属性达到3点',
-                    unlocked: gameState.stats.insight >= 3,
-                    icon: '👁️'
-                },
-                {
-                    name: '魅力四射',
-                    description: '魅力属性达到3点',
-                    unlocked: gameState.stats.charm >= 3,
-                    icon: '✨'
-                },
-                {
-                    name: '医者仁心',
-                    description: '顾太医好感度达到4点',
-                    unlocked: gameState.affection.gu >= 4,
-                    icon: '💊'
-                },
-                {
-                    name: '王侯将相',
-                    description: '萧王爷好感度达到4点',
-                    unlocked: gameState.affection.xiao >= 4,
-                    icon: '👑'
-                },
-                {
-                    name: '将军情谊',
-                    description: '韩将军好感度达到4点',
-                    unlocked: gameState.affection.han >= 4,
-                    icon: '⚔️'
+            // 从配置中加载成就数据
+            const achievementsConfig = window.GAME_ACHIEVEMENTS_CONFIG?.achievements || [];
+            
+            // 检查成就解锁状态
+            const achievements = achievementsConfig.map(achievement => {
+                let unlocked = false;
+                
+                // 根据条件类型判断是否解锁
+                switch (achievement.condition.type) {
+                    case 'choices_count':
+                        unlocked = gameStateLocal.choices.length >= achievement.condition.value;
+                        break;
+                    case 'stat':
+                        unlocked = gameStateLocal.stats[achievement.condition.stat] >= achievement.condition.value;
+                        break;
+                    case 'affection':
+                        unlocked = gameStateLocal.affection[achievement.condition.character] >= achievement.condition.value;
+                        break;
                 }
-            ];
+                
+                return {
+                    ...achievement,
+                    unlocked
+                };
+            });
             
             achievementsSection.innerHTML = achievements.map(achievement => `
                 <div class="character-card" style="opacity: ${achievement.unlocked ? '1' : '0.5'}">

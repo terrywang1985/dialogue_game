@@ -1,7 +1,7 @@
 /**
  * 凤临朝游戏数据配置
  * 此文件由转换脚本自动生成，请勿手动编辑
- * 生成时间: 2025-10-26 11:28:57
+ * 生成时间: 2025-10-26 11:41:27
  */
 
 // 剧情配置数据
@@ -424,5 +424,98 @@ window.GAME_CHARACTERS_CONFIG = {
   }
 };
 
+// 成就配置数据
+window.GAME_ACHIEVEMENTS_CONFIG = {
+  "achievements": [
+    {
+      "id": "first_choice",
+      "name": "初次选择",
+      "description": "完成第一个剧情选择",
+      "icon": "🎯",
+      "condition": {
+        "type": "choices_count",
+        "value": 1
+      }
+    },
+    {
+      "id": "wisdom_beginner",
+      "name": "智慧初现",
+      "description": "智慧属性达到3点",
+      "icon": "🧠",
+      "condition": {
+        "type": "stat",
+        "stat": "wisdom",
+        "value": 3
+      }
+    },
+    {
+      "id": "courage_beginner",
+      "name": "勇气可嘉",
+      "description": "勇气属性达到3点",
+      "icon": "💪",
+      "condition": {
+        "type": "stat",
+        "stat": "courage",
+        "value": 3
+      }
+    },
+    {
+      "id": "insight_beginner",
+      "name": "洞察先机",
+      "description": "洞察属性达到3点",
+      "icon": "👁️",
+      "condition": {
+        "type": "stat",
+        "stat": "insight",
+        "value": 3
+      }
+    },
+    {
+      "id": "charm_beginner",
+      "name": "魅力四射",
+      "description": "魅力属性达到3点",
+      "icon": "✨",
+      "condition": {
+        "type": "stat",
+        "stat": "charm",
+        "value": 3
+      }
+    },
+    {
+      "id": "gu_affection",
+      "name": "医者仁心",
+      "description": "顾太医好感度达到4点",
+      "icon": "💊",
+      "condition": {
+        "type": "affection",
+        "character": "gu",
+        "value": 4
+      }
+    },
+    {
+      "id": "xiao_affection",
+      "name": "王侯将相",
+      "description": "萧王爷好感度达到4点",
+      "icon": "👑",
+      "condition": {
+        "type": "affection",
+        "character": "xiao",
+        "value": 4
+      }
+    },
+    {
+      "id": "han_affection",
+      "name": "将军情谊",
+      "description": "韩将军好感度达到4点",
+      "icon": "⚔️",
+      "condition": {
+        "type": "affection",
+        "character": "han",
+        "value": 4
+      }
+    }
+  ]
+};
+
 console.log('✅ 游戏配置数据已加载');
-console.log('📅 生成时间: 2025-10-26 11:28:57');
+console.log('📅 生成时间: 2025-10-26 11:41:27');

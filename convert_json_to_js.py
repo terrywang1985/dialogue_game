@@ -26,7 +26,7 @@ def read_json(filepath):
         print(f"   详细信息：{e}")
         return None
 
-def generate_game_data_js(story_config, resources_config, collection_config, characters_config):
+def generate_game_data_js(story_config, resources_config, collection_config, characters_config, achievements_config):
     """生成game-data.js文件内容"""
     
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -49,6 +49,9 @@ window.GAME_COLLECTION_CONFIG = {json.dumps(collection_config, ensure_ascii=Fals
 // 角色配置数据
 window.GAME_CHARACTERS_CONFIG = {json.dumps(characters_config, ensure_ascii=False, indent=2)};
 
+// 成就配置数据
+window.GAME_ACHIEVEMENTS_CONFIG = {json.dumps(achievements_config, ensure_ascii=False, indent=2)};
+
 console.log('✅ 游戏配置数据已加载');
 console.log('📅 生成时间: {current_time}');
 '''
@@ -67,6 +70,7 @@ def main():
     resources_config_path = 'config/resources_config.json'
     collection_config_path = 'config/collection_config.json'
     characters_config_path = 'config/characters_config.json'
+    achievements_config_path = 'config/achievements_config.json'
     output_path = 'game-data.js'
     
     print(f"📖 读取配置文件...")
@@ -74,6 +78,7 @@ def main():
     print(f"   - {resources_config_path}")
     print(f"   - {collection_config_path}")
     print(f"   - {characters_config_path}")
+    print(f"   - {achievements_config_path}")
     print()
     
     # 读取JSON文件
@@ -81,10 +86,12 @@ def main():
     resources_config = read_json(resources_config_path)
     collection_config = read_json(collection_config_path)
     characters_config = read_json(characters_config_path)
+    achievements_config = read_json(achievements_config_path)
     
     # 检查是否读取成功
     if (story_config is None or resources_config is None or 
-        collection_config is None or characters_config is None):
+        collection_config is None or characters_config is None or
+        achievements_config is None):
         print()
         print("❌ 转换失败！请检查JSON文件是否存在且格式正确")
         input("\n按回车键退出...")
@@ -95,7 +102,7 @@ def main():
     
     # 生成JS代码
     print(f"🔄 生成 {output_path}...")
-    js_code = generate_game_data_js(story_config, resources_config, collection_config, characters_config)
+    js_code = generate_game_data_js(story_config, resources_config, collection_config, characters_config, achievements_config)
     
     # 写入文件
     try:
@@ -112,10 +119,12 @@ def main():
         cg_count = len(collection_config.get('cgGallery', []))
         story_review_count = len(collection_config.get('storyReview', []))
         character_count = len(characters_config.get('characters', {}))
+        achievement_count = len(achievements_config.get('achievements', []))
         
         print(f"   - 章节数：{chapter_count}")
         print(f"   - 场景数：{scene_count}")
         print(f"   - 角色数：{character_count}")
+        print(f"   - 成就数：{achievement_count}")
         print(f"   - CG图片数：{cg_count}")
         print(f"   - 剧情回顾数：{story_review_count}")
         print(f"   - 文件大小：{len(js_code)} 字节")

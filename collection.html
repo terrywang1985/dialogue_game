@@ -372,15 +372,31 @@
         // 从配置中加载剧情数据
         const collectionStoryData = window.GAME_COLLECTION_CONFIG?.storyReview || [];
         
-        // 初始化游戏状态
-        let gameState = null;
+        // 初始化游戏状态（避免与全局 gameState 冲突，使用 collectionGameState）
+        let collectionGameState = null;
         
         // 初始化页面
         function initPage() {
-            // 加载背景图片
+            console.log('📄 收藏图鉴页面初始化...');
+            
+            // 加载背景图片并添加详细日志
             if (typeof window.GAME_RESOURCES_CONFIG !== 'undefined' && window.GAME_RESOURCES_CONFIG.backgrounds) {
                 const bgImg = document.getElementById('pageBackground');
-                bgImg.src = window.GAME_RESOURCES_CONFIG.backgrounds.throne_room || '';
+                const bgPath = window.GAME_RESOURCES_CONFIG.backgrounds.throne_room || '';
+                console.log('🖼️ 尝试加载背景图:', bgPath);
+                
+                bgImg.onerror = function() {
+                    console.error('❌ 背景图加载失败:', bgPath);
+                    console.error('   完整URL:', this.src);
+                };
+                bgImg.onload = function() {
+                    console.log('✅ 背景图加载成功:', bgPath);
+                };
+                
+                bgImg.src = bgPath;
+            } else {
+                console.error('❌ 未找到 GAME_RESOURCES_CONFIG 或 backgrounds 配置');
+                console.log('   window.GAME_RESOURCES_CONFIG =', window.GAME_RESOURCES_CONFIG);
             }
             
             loadGameData();
@@ -392,17 +408,19 @@
         
         // 加载游戏数据
         function loadGameData() {
-            // 从 main.js 的 GameStateManager 获取状态
-            if (window.gameStateManager) {
-                gameState = window.gameStateManager.getState();
+            // 优先从全局 GameStateManager 获取状态
+            if (window.gameState && typeof window.gameState.getState === 'function') {
+                collectionGameState = window.gameState.getState();
+                console.log('✅ 从 GameStateManager 加载状态');
             } else {
-                // 如果没有 gameStateManager，从 localStorage 加载
+                // 如果没有 gameState，从 localStorage 加载
                 const saveData = localStorage.getItem('phoenixGameSave');
                 if (saveData) {
-                    gameState = JSON.parse(saveData);
+                    collectionGameState = JSON.parse(saveData);
+                    console.log('✅ 从 localStorage 加载状态');
                 } else {
                     // 创建默认状态
-                    gameState = {
+                    collectionGameState = {
                         stats: { wisdom: 0, courage: 0, insight: 0, charm: 0 },
                         affection: { gu: 0, xiao: 0, han: 0 },
                         choices: [],
@@ -411,6 +429,7 @@
                         unlockedCG: [],
                         unlockedStory: []
                     };
+                    console.log('⚠️ 使用默认游戏状态');
                 }
             }
             
@@ -421,44 +440,44 @@
         // 根据游戏进度更新解锁状态
         function updateUnlocks() {
             // 根据选择数量解锁内容
-            const choiceCount = gameState.choices.length;
+            const choiceCount = collectionGameState.choices.length;
             
             if (choiceCount >= 1) {
-                if (!gameState.unlockedCG.includes('cold_palace')) {
-                    gameState.unlockedCG.push('cold_palace');
+                if (!collectionGameState.unlockedCG.includes('cold_palace')) {
+                    collectionGameState.unlockedCG.push('cold_palace');
                 }
-                if (!gameState.unlockedStory.includes('scene1')) {
-                    gameState.unlockedStory.push('scene1');
+                if (!collectionGameState.unlockedStory.includes('scene1')) {
+                    collectionGameState.unlockedStory.push('scene1');
                 }
             }
             
             if (choiceCount >= 2) {
-                if (!gameState.unlockedCG.includes('medical_hall')) {
-                    gameState.unlockedCG.push('medical_hall');
+                if (!collectionGameState.unlockedCG.includes('medical_hall')) {
+                    collectionGameState.unlockedCG.push('medical_hall');
                 }
-                if (!gameState.unlockedStory.includes('scene2')) {
-                    gameState.unlockedStory.push('scene2');
+                if (!collectionGameState.unlockedStory.includes('scene2')) {
+                    collectionGameState.unlockedStory.push('scene2');
                 }
             }
             
             if (choiceCount >= 3) {
-                if (!gameState.unlockedCG.includes('imperial_garden')) {
-                    gameState.unlockedCG.push('imperial_garden');
+                if (!collectionGameState.unlockedCG.includes('imperial_garden')) {
+                    collectionGameState.unlockedCG.push('imperial_garden');
                 }
-                if (!gameState.unlockedStory.includes('scene3')) {
-                    gameState.unlockedStory.push('scene3');
+                if (!collectionGameState.unlockedStory.includes('scene3')) {
+                    collectionGameState.unlockedStory.push('scene3');
                 }
             }
             
             if (choiceCount >= 4) {
-                if (!gameState.unlockedCG.includes('study_room')) {
-                    gameState.unlockedCG.push('study_room');
+                if (!collectionGameState.unlockedCG.includes('study_room')) {
+                    collectionGameState.unlockedCG.push('study_room');
                 }
-                if (!gameState.unlockedStory.includes('scene4')) {
-                    gameState.unlockedStory.push('scene4');
+                if (!collectionGameState.unlockedStory.includes('scene4')) {
+                    collectionGameState.unlockedStory.push('scene4');
                 }
-                if (!gameState.unlockedCG.includes('throne_room')) {
-                    gameState.unlockedCG.push('throne_room');
+                if (!collectionGameState.unlockedCG.includes('throne_room')) {
+                    collectionGameState.unlockedCG.push('throne_room');
                 }
             }
         }
@@ -478,7 +497,7 @@
         function updateCGGallery() {
             const cgGrid = document.getElementById('cgGrid');
             
-            if (gameState.unlockedCG.length === 0) {
+            if (collectionGameState.unlockedCG.length === 0) {
                 cgGrid.innerHTML = '<div class="empty-state">暂无解锁的CG图片<br>开始游戏来解锁精美插画吧</div>';
                 return;
             }
@@ -486,7 +505,7 @@
             cgGrid.innerHTML = '';
             
             cgData.forEach(cg => {
-                const isUnlocked = gameState.unlockedCG.includes(cg.id);
+                const isUnlocked = collectionGameState.unlockedCG.includes(cg.id);
                 const cgItem = createCGItem(cg, isUnlocked);
                 cgGrid.appendChild(cgItem);
             });
@@ -523,7 +542,7 @@
         function updateStoryList() {
             const storyList = document.getElementById('storyList');
             
-            if (gameState.unlockedStory.length === 0) {
+            if (collectionGameState.unlockedStory.length === 0) {
                 storyList.innerHTML = '<div class="empty-state">暂无解锁的剧情回顾<br>开始游戏来记录您的冒险吧</div>';
                 return;
             }
@@ -531,7 +550,7 @@
             storyList.innerHTML = '';
             
             collectionStoryData.forEach(story => {
-                const isUnlocked = gameState.unlockedStory.includes(story.id);
+                const isUnlocked = collectionGameState.unlockedStory.includes(story.id);
                 const storyItem = createStoryItem(story, isUnlocked);
                 storyList.appendChild(storyItem);
             });
@@ -567,42 +586,42 @@
             const stats = [
                 {
                     label: '游戏进度',
-                    value: `${Math.min(gameState.choices.length * 25, 100)}%`,
+                    value: `${Math.min(collectionGameState.choices.length * 25, 100)}%`,
                     icon: '📊'
                 },
                 {
                     label: '解锁CG',
-                    value: `${gameState.unlockedCG.length}/${cgData.length}`,
+                    value: `${collectionGameState.unlockedCG.length}/${cgData.length}`,
                     icon: '🖼️'
                 },
                 {
                     label: '解锁剧情',
-                    value: `${gameState.unlockedStory.length}/${collectionStoryData.length}`,
+                    value: `${collectionGameState.unlockedStory.length}/${collectionStoryData.length}`,
                     icon: '📖'
                 },
                 {
                     label: '总选择数',
-                    value: gameState.choices.length,
+                    value: collectionGameState.choices.length,
                     icon: '🎯'
                 },
                 {
                     label: '智慧总值',
-                    value: gameState.stats.wisdom,
+                    value: collectionGameState.stats.wisdom,
                     icon: '🧠'
                 },
                 {
                     label: '勇气总值',
-                    value: gameState.stats.courage,
+                    value: collectionGameState.stats.courage,
                     icon: '💪'
                 },
                 {
                     label: '洞察总值',
-                    value: gameState.stats.insight,
+                    value: collectionGameState.stats.insight,
                     icon: '👁️'
                 },
                 {
                     label: '魅力总值',
-                    value: gameState.stats.charm,
+                    value: collectionGameState.stats.charm,
                     icon: '✨'
                 }
             ];
