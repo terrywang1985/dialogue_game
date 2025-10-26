@@ -581,10 +581,15 @@
             // 加载资源列表
             async loadResources() {
                 if (window.GAME_RESOURCES_CONFIG) {
-                    this.resources.backgrounds = Object.keys(window.GAME_RESOURCES_CONFIG.backgrounds || {});
-                    this.resources.characters = Object.keys(window.GAME_RESOURCES_CONFIG.characters || {});
-                    this.resources.music = Object.keys(window.GAME_RESOURCES_CONFIG.music || {});
-                    this.resources.sounds = Object.keys(window.GAME_RESOURCES_CONFIG.sounds || {});
+                    const backgrounds = Object.entries(window.GAME_RESOURCES_CONFIG.backgrounds || {});
+                    const characters = Object.entries(window.GAME_RESOURCES_CONFIG.characters || {});
+                    const music = Object.entries(window.GAME_RESOURCES_CONFIG.music || {});
+                    const sounds = Object.entries(window.GAME_RESOURCES_CONFIG.sounds || {});
+
+                    this.resources.backgrounds = backgrounds.map(([id, path]) => ({ id, path }));
+                    this.resources.characters = characters.map(([id, path]) => ({ id, path }));
+                    this.resources.music = music.map(([id, path]) => ({ id, path }));
+                    this.resources.sounds = sounds.map(([id, path]) => ({ id, path }));
                 }
                 
                 console.log('📦 已加载资源:', this.resources);
@@ -882,6 +887,23 @@
                         return '未命名';
                 }
             }
+
+            getResourceDisplay(type, value) {
+                if (!value) return '未设置';
+                const list = this.resources[type] || [];
+                const match = list.find(item => item.path === value || item.id === value);
+                if (match) {
+                    return `${match.id} (${match.path})`;
+                }
+                return value;
+            }
+
+            normalizeResourceValue(type, value) {
+                if (!value) return '';
+                const list = this.resources[type] || [];
+                const match = list.find(item => item.path === value || item.id === value);
+                return match ? match.path : value;
+            }
             
             // 渲染节点内容
             renderNodeBody(node) {
@@ -895,7 +917,10 @@
                     case 'scene':
                         return `
                             <div class="node-field">
-                                <span class="node-field-label">背景:</span>${node.data.background || '未设置'}
+                                <span class="node-field-label">背景:</span>${this.getResourceDisplay('backgrounds', node.data.background)}
+                            </div>
+                            <div class="node-field">
+                                <span class="node-field-label">BGM:</span>${this.getResourceDisplay('music', node.data.bgm)}
                             </div>
                         `;
                     case 'dialogue':
@@ -988,12 +1013,12 @@
             
             // 渲染场景属性
             renderSceneProperties(node) {
-                const bgOptions = this.resources.backgrounds.map(bg => 
-                    `<option value="${bg}" ${node.data.background === bg ? 'selected' : ''}>${bg}</option>`
+                const bgOptions = this.resources.backgrounds.map(item => 
+                    `<option value="${item.path}" title="${item.path}" ${(node.data.background === item.path || node.data.background === item.id) ? 'selected' : ''}>${item.id}</option>`
                 ).join('');
                 
-                const musicOptions = this.resources.music.map(music => 
-                    `<option value="${music}" ${node.data.bgm === music ? 'selected' : ''}>${music}</option>`
+                const musicOptions = this.resources.music.map(item => 
+                    `<option value="${item.path}" title="${item.path}" ${(node.data.bgm === item.path || node.data.bgm === item.id) ? 'selected' : ''}>${item.id}</option>`
                 ).join('');
                 
                 return `
@@ -1010,8 +1035,8 @@
                             <option value="">选择背景</option>
                             ${bgOptions}
                         </select>
-                        <div style="margin-top: 5px; font-size: 11px; color: #666;">
-                            资源路径: resources/backgrounds/
+                        <div id="prop-background-display" style="margin-top: 5px; font-size: 11px; color: #666;">
+                            当前: ${this.getResourceDisplay('backgrounds', node.data.background)}
                         </div>
                     </div>
                     
@@ -1021,8 +1046,8 @@
                             <option value="">选择音乐</option>
                             ${musicOptions}
                         </select>
-                        <div style="margin-top: 5px; font-size: 11px; color: #666;">
-                            资源路径: resources/music/
+                        <div id="prop-bgm-display" style="margin-top: 5px; font-size: 11px; color: #666;">
+                            当前: ${this.getResourceDisplay('music', node.data.bgm)}
                         </div>
                     </div>
                 `;
@@ -1030,8 +1055,8 @@
             
             // 渲染对话属性
             renderDialogueProperties(node) {
-                const charOptions = this.resources.characters.map(char => 
-                    `<option value="${char}" ${node.data.character === char ? 'selected' : ''}>${char}</option>`
+                const charOptions = this.resources.characters.map(item => 
+                    `<option value="${item.path}" title="${item.path}" ${(node.data.character === item.path || node.data.character === item.id) ? 'selected' : ''}>${item.id}</option>`
                 ).join('');
                 
                 return `
@@ -1053,8 +1078,8 @@
                             <option value="">无立绘</option>
                             ${charOptions}
                         </select>
-                        <div style="margin-top: 5px; font-size: 11px; color: #666;">
-                            资源路径: resources/characters/
+                        <div id="prop-character-display" style="margin-top: 5px; font-size: 11px; color: #666;">
+                            当前: ${this.getResourceDisplay('characters', node.data.character)}
                         </div>
                     </div>
                 `;
@@ -1129,19 +1154,34 @@
 
                 const inputs = document.querySelectorAll('.property-input, .property-select, .property-textarea');
                 inputs.forEach(input => {
-                    input.addEventListener('input', (e) => {
+                    const handleInput = (e) => {
                         const propName = e.target.id.replace('prop-', '');
+                        const resourceFieldMap = {
+                            background: 'backgrounds',
+                            bgm: 'music',
+                            character: 'characters'
+                        };
+                        const resourceType = resourceFieldMap[propName];
                         
                         if (propName === 'effects') {
                             node.data.effects = this.parseEffects(e.target.value);
                         } else if (propName === 'conditions') {
                             node.data.conditions = this.parseConditions(e.target.value);
+                        } else if (resourceType) {
+                            node.data[propName] = this.normalizeResourceValue(resourceType, e.target.value);
+                            const displayEl = document.getElementById(`prop-${propName}-display`);
+                            if (displayEl) {
+                                displayEl.textContent = `当前: ${this.getResourceDisplay(resourceType, node.data[propName])}`;
+                            }
                         } else {
                             node.data[propName] = e.target.value;
                         }
                         
                         this.updateNodeDisplay(node.id);
-                    });
+                    };
+
+                    input.addEventListener('input', handleInput);
+                    input.addEventListener('change', handleInput);
                 });
             }
             
@@ -1481,8 +1521,8 @@
                     const sceneNode = this.nodes.get(sceneNodeId);
                     
                     sceneNode.data.sceneId = sceneId;
-                    sceneNode.data.background = sceneData.background || '';
-                    sceneNode.data.bgm = sceneData.bgm || '';
+                    sceneNode.data.background = this.normalizeResourceValue('backgrounds', sceneData.background || '');
+                    sceneNode.data.bgm = this.normalizeResourceValue('music', sceneData.bgm || '');
                     
                     sceneNodeMap.set(sceneId, sceneNodeId);
                     dialogueNodeMap.set(sceneId, []);
@@ -1497,7 +1537,7 @@
                         
                         dialogueNode.data.name = dialogue.name || '';
                         dialogueNode.data.text = dialogue.text || '';
-                        dialogueNode.data.character = dialogue.character || '';
+                        dialogueNode.data.character = this.normalizeResourceValue('characters', dialogue.character || '');
                         
                         dialogueNodeMap.get(sceneId).push(dialogueNodeId);
                         
@@ -1652,8 +1692,8 @@
                 sceneNodes.forEach(sceneNode => {
                     const sceneId = sceneNode.data.sceneId;
                     const scene = {
-                        background: sceneNode.data.background || '',
-                        bgm: sceneNode.data.bgm || '',
+                        background: this.normalizeResourceValue('backgrounds', sceneNode.data.background || ''),
+                        bgm: this.normalizeResourceValue('music', sceneNode.data.bgm || ''),
                         dialogues: [],
                         choices: []
                     };
@@ -1666,7 +1706,7 @@
                             scene.dialogues.push({
                                 name: dialogueNode.data.name || '',
                                 text: dialogueNode.data.text || '',
-                                character: dialogueNode.data.character || null,
+                                character: this.normalizeResourceValue('characters', dialogueNode.data.character || '') || null,
                                 voice: null
                             });
                             
