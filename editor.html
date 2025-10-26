@@ -542,7 +542,7 @@
                 this.connectionsSvg = document.getElementById('connectionsSvg');
                 
                 // 平移和缩放
-                this.offset = { x: 500, y: 500 };
+                this.offset = { x: 0, y: 0 };
                 this.scale = 1;
                 this.isPanning = false;
                 this.panStart = { x: 0, y: 0 };
@@ -608,8 +608,7 @@
                     const nodeType = e.dataTransfer.getData('nodeType');
                     if (nodeType) {
                         const rect = this.canvasContainer.getBoundingClientRect();
-                        const x = (e.clientX - rect.left - this.offset.x) / this.scale;
-                        const y = (e.clientY - rect.top - this.offset.y) / this.scale;
+                        const { x, y } = this.screenToCanvas(e.clientX - rect.left, e.clientY - rect.top);
                         this.createNode(nodeType, x, y);
                         this.updateCanvasTransform();
                     }
@@ -632,13 +631,9 @@
                     }
                     
                     if (this.isConnecting && this.tempLine) {
-                        // 将鼠标坐标转换为画布坐标
                         const rect = this.canvasContainer.getBoundingClientRect();
-                        const mouseX = e.clientX - rect.left;
-                        const mouseY = e.clientY - rect.top;
-                        const canvasX = (mouseX - this.offset.x) / this.scale;
-                        const canvasY = (mouseY - this.offset.y) / this.scale;
-                        this.updateTempLine(canvasX, canvasY);
+                        const { x, y } = this.screenToCanvas(e.clientX - rect.left, e.clientY - rect.top);
+                        this.updateTempLine(x, y);
                     }
                 });
                 
@@ -687,6 +682,30 @@
                 this.canvas.style.transform = `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale})`;
                 this.connectionsSvg.style.transform = `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale})`;
                 this.updateAllConnections();
+            }
+
+            // 将屏幕坐标转换为画布坐标
+            screenToCanvas(x, y) {
+                return {
+                    x: (x - this.offset.x) / this.scale,
+                    y: (y - this.offset.y) / this.scale
+                };
+            }
+
+            // 获取节点端口在画布坐标中的位置
+            getPortPosition(nodeId, portType) {
+                const nodeEl = document.getElementById(nodeId);
+                if (!nodeEl) return { x: 0, y: 0 };
+                const port = nodeEl.querySelector(`.node-port.${portType}`);
+                if (!port) return { x: 0, y: 0 };
+
+                const portRect = port.getBoundingClientRect();
+                const containerRect = this.canvasContainer.getBoundingClientRect();
+
+                const centerX = portRect.left + portRect.width / 2 - containerRect.left;
+                const centerY = portRect.top + portRect.height / 2 - containerRect.top;
+
+                return this.screenToCanvas(centerX, centerY);
             }
             
             // 创建节点
@@ -1153,16 +1172,15 @@
                 console.log('🔗 开始连接:', fromNodeId);
                 this.isConnecting = true;
                 this.connectingFrom = fromNodeId;
-                
-                const fromNode = this.nodes.get(fromNodeId);
-                const fromEl = document.getElementById(fromNodeId);
-                
-                const startX = fromNode.x + fromEl.offsetWidth;
-                const startY = fromNode.y + fromEl.offsetHeight / 2;
+                const startPos = this.getPortPosition(fromNodeId, 'output');
                 
                 this.tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 this.tempLine.classList.add('connection-line', 'temp-connection');
                 this.tempLine.setAttribute('marker-end', 'url(#arrowhead)');
+                this.tempLine.setAttribute('stroke', '#999');
+                this.tempLine.setAttribute('stroke-width', '2');
+                this.tempLine.setAttribute('fill', 'none');
+                this.tempLine.setAttribute('d', `M ${startPos.x} ${startPos.y} L ${startPos.x} ${startPos.y}`);
                 this.connectionsSvg.appendChild(this.tempLine);
                 
                 console.log('✅ 临时连线已创建', this.tempLine);
@@ -1171,18 +1189,10 @@
             // 更新临时连线
             updateTempLine(endX, endY) {
                 if (!this.tempLine || !this.connectingFrom) return;
+                const startPos = this.getPortPosition(this.connectingFrom, 'output');
                 
-                const fromNode = this.nodes.get(this.connectingFrom);
-                const fromEl = document.getElementById(this.connectingFrom);
-                
-                const startX = fromNode.x + fromEl.offsetWidth;
-                const startY = fromNode.y + fromEl.offsetHeight / 2;
-                
-                const path = this.createCurvePath(startX, startY, endX, endY);
+                const path = this.createCurvePath(startPos.x, startPos.y, endX, endY);
                 this.tempLine.setAttribute('d', path);
-                this.tempLine.setAttribute('stroke', '#999');
-                this.tempLine.setAttribute('stroke-width', '2');
-                this.tempLine.setAttribute('fill', 'none');
             }
             
             // 完成连接
@@ -1245,31 +1255,10 @@
             updateConnection(connectionId) {
                 const connection = this.connections.find(c => c.id === connectionId);
                 if (!connection) return;
+                const startPos = this.getPortPosition(connection.from, 'output');
+                const endPos = this.getPortPosition(connection.to, 'input');
                 
-                const fromNode = this.nodes.get(connection.from);
-                const toNode = this.nodes.get(connection.to);
-                if (!fromNode || !toNode) return;
-                
-                const fromEl = document.getElementById(connection.from);
-                const toEl = document.getElementById(connection.to);
-                if (!fromEl || !toEl) return;
-                
-                const fromPort = fromEl.querySelector('.node-port.output');
-                const toPort = toEl.querySelector('.node-port.input');
-                
-                const fromRect = fromPort.getBoundingClientRect();
-                const toRect = toPort.getBoundingClientRect();
-                
-                // 直接使用节点的位置计算，不需要考虑容器偏移
-                const fromNodeRect = fromEl.getBoundingClientRect();
-                const toNodeRect = toEl.getBoundingClientRect();
-                
-                const startX = fromNode.x + fromEl.offsetWidth;
-                const startY = fromNode.y + fromEl.offsetHeight / 2;
-                const endX = toNode.x;
-                const endY = toNode.y + toEl.offsetHeight / 2;
-                
-                const path = this.createCurvePath(startX, startY, endX, endY);
+                const path = this.createCurvePath(startPos.x, startPos.y, endPos.x, endPos.y);
                 const line = document.getElementById(connectionId);
                 if (line) {
                     line.setAttribute('d', path);
