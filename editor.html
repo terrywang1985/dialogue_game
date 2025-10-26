@@ -630,19 +630,31 @@
                     }
                     
                     if (this.isConnecting && this.tempLine) {
+                        // 将鼠标坐标转换为画布坐标
                         const rect = this.canvasContainer.getBoundingClientRect();
-                        const x = (e.clientX - rect.left - this.offset.x) / this.scale;
-                        const y = (e.clientY - rect.top - this.offset.y) / this.scale;
-                        this.updateTempLine(x, y);
+                        const mouseX = e.clientX - rect.left;
+                        const mouseY = e.clientY - rect.top;
+                        const canvasX = (mouseX - this.offset.x) / this.scale;
+                        const canvasY = (mouseY - this.offset.y) / this.scale;
+                        this.updateTempLine(canvasX, canvasY);
                     }
                 });
                 
-                document.addEventListener('mouseup', () => {
+                document.addEventListener('mouseup', (e) => {
                     this.isPanning = false;
                     this.canvasContainer.classList.remove('grabbing');
                     
+                    // 如果正在连接，检查是否点击到了输入端口
                     if (this.isConnecting) {
-                        this.cancelConnection();
+                        const target = e.target;
+                        if (target.classList.contains('node-port') && target.classList.contains('input')) {
+                            // 已经在inputPort的mouseup中处理了
+                            return;
+                        }
+                        // 其他情况取消连接
+                        setTimeout(() => {
+                            this.cancelConnection();
+                        }, 10);
                     }
                 });
                 
@@ -689,6 +701,14 @@
                 this.nodes.set(nodeId, node);
                 this.renderNode(node);
                 this.updateInfo();
+                
+                // 强制重绘
+                requestAnimationFrame(() => {
+                    const nodeEl = document.getElementById(nodeId);
+                    if (nodeEl) {
+                        nodeEl.style.display = 'block';
+                    }
+                });
                 
                 return nodeId;
             }
@@ -751,7 +771,7 @@
                 nodeEl.innerHTML = `
                     <div class="node-header">
                         <span class="node-title">${icons[node.type]} ${titles[node.type]}: ${this.getNodeDisplayName(node)}</span>
-                        <button class="node-delete" onclick="editor.deleteNode('${node.id}')">×</button>
+                        <button class="node-delete" data-node-id="${node.id}">×</button>
                     </div>
                     <div class="node-body">
                         ${this.renderNodeBody(node)}
@@ -792,13 +812,22 @@
                 // 连接点事件
                 const inputPort = nodeEl.querySelector('.node-port.input');
                 const outputPort = nodeEl.querySelector('.node-port.output');
+                const deleteBtn = nodeEl.querySelector('.node-delete');
+                
+                // 删除按钮 - 直接删除，不弹窗
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deleteNodeDirect(node.id);
+                });
                 
                 outputPort.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     this.startConnection(node.id);
                 });
                 
                 inputPort.addEventListener('mouseup', (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     if (this.isConnecting) {
                         this.completeConnection(node.id);
@@ -1127,6 +1156,7 @@
             
             // 开始连接
             startConnection(fromNodeId) {
+                console.log('🔗 开始连接:', fromNodeId);
                 this.isConnecting = true;
                 this.connectingFrom = fromNodeId;
                 
@@ -1140,6 +1170,8 @@
                 this.tempLine.classList.add('connection-line', 'temp-connection');
                 this.tempLine.setAttribute('marker-end', 'url(#arrowhead)');
                 this.connectionsSvg.appendChild(this.tempLine);
+                
+                console.log('✅ 临时连线已创建', this.tempLine);
             }
             
             // 更新临时连线
@@ -1154,6 +1186,9 @@
                 
                 const path = this.createCurvePath(startX, startY, endX, endY);
                 this.tempLine.setAttribute('d', path);
+                this.tempLine.setAttribute('stroke', '#999');
+                this.tempLine.setAttribute('stroke-width', '2');
+                this.tempLine.setAttribute('fill', 'none');
             }
             
             // 完成连接
@@ -1185,6 +1220,7 @@
             
             // 取消连接
             cancelConnection() {
+                console.log('❌ 取消连接');
                 this.isConnecting = false;
                 this.connectingFrom = null;
                 
@@ -1270,10 +1306,8 @@
                 });
             }
             
-            // 删除节点
-            deleteNode(nodeId) {
-                if (!confirm('确定删除此节点？')) return;
-                
+            // 删除节点（直接删除，不弹窗）
+            deleteNodeDirect(nodeId) {
                 // 删除相关连接
                 this.connections = this.connections.filter(conn => {
                     if (conn.from === nodeId || conn.to === nodeId) {
@@ -1295,6 +1329,12 @@
                 }
                 
                 this.updateInfo();
+            }
+            
+            // 删除节点（带确认）
+            deleteNode(nodeId) {
+                if (!confirm('确定删除此节点？')) return;
+                this.deleteNodeDirect(nodeId);
             }
             
             // 删除连接

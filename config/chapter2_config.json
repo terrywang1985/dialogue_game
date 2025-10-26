@@ -330,7 +330,7 @@
         {
           "text": "【继续第三章】权谋之争（敬请期待）",
           "effects": [],
-          "nextScene": "chapter3:scene1",
+          "nextScene": "chapter3_scene1",
           "conditions": []
         },
         {
