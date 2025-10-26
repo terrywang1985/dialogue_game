@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清除存档 - 凤临朝</title>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: linear-gradient(135deg, #2F4F4F 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(139, 69, 19, 0.95);
+            border: 3px solid #D4AF37;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: #D4AF37;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .info {
+            background: rgba(0,0,0,0.3);
+            border-left: 4px solid #D4AF37;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            color: #fff;
+            border-radius: 5px;
+        }
+        .info-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .label {
+            color: #D4AF37;
+            font-weight: bold;
+        }
+        .value {
+            color: #fff;
+        }
+        button {
+            background: linear-gradient(135deg, #8B0000, #DC143C);
+            border: 2px solid #D4AF37;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            font-family: 'Noto Serif SC', serif;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #DC143C, #8B0000);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+        button.secondary {
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.9), rgba(139, 0, 0, 0.8));
+        }
+        button.secondary:hover {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.9), rgba(139, 69, 19, 0.8));
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+        }
+        .status.success {
+            background: rgba(0, 128, 0, 0.3);
+            border: 2px solid #0f0;
+            color: #0f0;
+        }
+        .status.warning {
+            background: rgba(255, 165, 0, 0.3);
+            border: 2px solid #ffa500;
+            color: #ffa500;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ 清除游戏存档</h1>
+        
+        <div class="info" id="saveInfo">
+            <div class="info-item">
+                <span class="label">存档状态：</span>
+                <span class="value" id="saveStatus">检测中...</span>
+            </div>
+            <div class="info-item">
+                <span class="label">保存时间：</span>
+                <span class="value" id="saveTime">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">当前章节：</span>
+                <span class="value" id="currentChapter">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">选择数量：</span>
+                <span class="value" id="choiceCount">--</span>
+            </div>
+        </div>
+        
+        <div id="buttons">
+            <button onclick="clearSave()">🗑️ 清除存档</button>
+            <button class="secondary" onclick="viewSave()">👁️ 查看存档</button>
+            <button class="secondary" onclick="goHome()">← 返回主页</button>
+        </div>
+        
+        <div id="status" class="status hidden"></div>
+    </div>
+
+    <script>
+        // 检查存档信息
+        function checkSaveInfo() {
+            const saveData = localStorage.getItem('phoenixGameSave');
+            const saveTime = localStorage.getItem('phoenixGameSaveTime');
+            
+            if (!saveData) {
+                document.getElementById('saveStatus').textContent = '❌ 无存档';
+                document.getElementById('saveStatus').style.color = '#f00';
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(saveData);
+                document.getElementById('saveStatus').textContent = '✅ 有存档';
+                document.getElementById('saveStatus').style.color = '#0f0';
+                
+                if (saveTime) {
+                    const date = new Date(parseInt(saveTime));
+                    document.getElementById('saveTime').textContent = date.toLocaleString('zh-CN');
+                }
+                
+                document.getElementById('currentChapter').textContent = 
+                    `第${data.chapter || 1}章`;
+                document.getElementById('choiceCount').textContent = 
+                    (data.choices?.length || 0) + ' 个选择';
+                    
+            } catch (e) {
+                document.getElementById('saveStatus').textContent = '⚠️ 存档损坏';
+                document.getElementById('saveStatus').style.color = '#ffa500';
+            }
+        }
+        
+        // 清除存档
+        function clearSave() {
+            if (!localStorage.getItem('phoenixGameSave')) {
+                showStatus('⚠️ 没有找到存档数据', 'warning');
+                return;
+            }
+            
+            if (!confirm('⚠️ 确定要清除游戏存档吗？\n此操作不可恢复！')) {
+                return;
+            }
+            
+            try {
+                localStorage.removeItem('phoenixGameSave');
+                localStorage.removeItem('phoenixGameSaveTime');
+                localStorage.removeItem('gameStarted');
+                
+                showStatus('✅ 存档已清除！即将刷新页面...', 'success');
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+                
+            } catch (e) {
+                showStatus('❌ 清除失败：' + e.message, 'warning');
+            }
+        }
+        
+        // 查看存档
+        function viewSave() {
+            const saveData = localStorage.getItem('phoenixGameSave');
+            if (!saveData) {
+                alert('没有存档数据');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(saveData);
+                console.log('=== 游戏存档数据 ===');
+                console.log(data);
+                console.table(data.stats);
+                console.table(data.affection);
+                alert('存档数据已输出到控制台（按F12查看）');
+            } catch (e) {
+                alert('存档数据格式错误：' + e.message);
+            }
+        }
+        
+        // 返回主页
+        function goHome() {
+            window.location.href = 'index.html';
+        }
+        
+        // 显示状态消息
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.classList.remove('hidden');
+        }
+        
+        // 页面加载时检查存档
+        window.addEventListener('DOMContentLoaded', checkSaveInfo);
+    </script>
+</body>
+</html>

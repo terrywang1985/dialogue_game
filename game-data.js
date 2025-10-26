@@ -1,14 +1,17 @@
 /**
  * 凤临朝游戏数据配置
  * 此文件由转换脚本自动生成，请勿手动编辑
- * 生成时间: 2025-10-26 11:41:27
+ * 生成时间: 2025-10-26 13:31:09
  */
 
 // 剧情配置数据
 window.GAME_STORY_CONFIG = {
+  "startChapter": "chapter1",
   "chapters": {
     "chapter1": {
       "title": "第一章：冷宫初遇",
+      "description": "穿越成冷宫废妃，结识关键人物",
+      "startScene": "scene1",
       "scenes": {
         "scene1": {
           "background": "resources/backgrounds/cold_palace.png",
@@ -274,17 +277,372 @@ window.GAME_STORY_CONFIG = {
             },
             {
               "name": "系统提示",
-              "text": "感谢您体验《凤临朝：穿越之权倾天下》首章内容。更多精彩剧情正在制作中...",
+              "text": "你已在冷宫中站稳脚跟，结识了关键人物。接下来的宫廷风云，将更加波诡云谲...",
               "character": null,
               "voice": null
             }
           ],
-          "choices": []
+          "choices": [
+            {
+              "text": "【继续第二章】宫廷暗涌",
+              "effects": [],
+              "nextScene": "chapter2_scene1",
+              "conditions": []
+            },
+            {
+              "text": "【暂时退出】返回主菜单",
+              "effects": [],
+              "nextScene": "main_menu",
+              "conditions": []
+            }
+          ]
+        }
+      }
+    },
+    "chapter2": {
+      "title": "第二章：宫闱暗涌",
+      "description": "深入宫廷，卷入权力斗争",
+      "startScene": "scene1",
+      "scenes": {
+        "scene1": {
+          "background": "resources/backgrounds/throne_room.png",
+          "bgm": "resources/music/cold_palace_theme.mp3",
+          "dialogues": [
+            {
+              "name": "系统提示",
+              "text": "数日后，你终于在冷宫站稳脚跟。然而一道圣旨，将你重新卷入宫廷风波...",
+              "character": null,
+              "voice": null
+            },
+            {
+              "name": "太监总管",
+              "text": "苏娘娘，陛下召您进宫觐见，请随奴才走吧。",
+              "character": null,
+              "voice": null
+            },
+            {
+              "name": "苏清月（内心）",
+              "text": "皇帝？为何突然召见我这个冷宫废妃？这其中必有蹊跷...",
+              "character": "resources/characters/heroine_cold_palace.png",
+              "voice": null
+            }
+          ],
+          "choices": [
+            {
+              "text": "【欣然前往】既来之则安之（魅力+1）",
+              "effects": [
+                {
+                  "type": "stat",
+                  "target": "charm",
+                  "value": 1
+                }
+              ],
+              "nextScene": "scene2",
+              "conditions": []
+            },
+            {
+              "text": "【小心应对】装病推脱试探虚实（智慧+1）",
+              "effects": [
+                {
+                  "type": "stat",
+                  "target": "wisdom",
+                  "value": 1
+                }
+              ],
+              "nextScene": "scene2_alt",
+              "conditions": []
+            },
+            {
+              "text": "【寻求帮助】先去找顾太医商量（需智慧≥2）",
+              "effects": [
+                {
+                  "type": "affection",
+                  "target": "gu",
+                  "value": 1
+                }
+              ],
+              "nextScene": "scene2_gu",
+              "conditions": [
+                {
+                  "type": "stat",
+                  "target": "wisdom",
+                  "value": 2
+                }
+              ]
+            }
+          ]
+        },
+        "scene2": {
+          "background": "resources/backgrounds/throne_room.png",
+          "bgm": "resources/music/tense_theme.mp3",
+          "dialogues": [
+            {
+              "name": "皇帝",
+              "text": "苏氏，抬起头来。",
+              "character": null,
+              "voice": null
+            },
+            {
+              "name": "苏清月",
+              "text": "（跪地行礼）臣妾参见陛下。",
+              "character": "resources/characters/heroine_cold_palace.png",
+              "voice": null
+            },
+            {
+              "name": "皇帝",
+              "text": "听闻你近日颇有才名，朕欲考校一番。若答得好，朕便还你自由之身。",
+              "character": null,
+              "voice": null
+            }
+          ],
+          "choices": [
+            {
+              "text": "【展现才华】作诗一首展示文采（智慧+2）",
+              "effects": [
+                {
+                  "type": "stat",
+                  "target": "wisdom",
+                  "value": 2
+                },
+                {
+                  "type": "stat",
+                  "target": "charm",
+                  "value": 1
+                }
+              ],
+              "nextScene": "scene3",
+              "conditions": []
+            },
+            {
+              "text": "【谦虚退让】自谦才疏学浅（洞察+1）",
+              "effects": [
+                {
+                  "type": "stat",
+                  "target": "insight",
+                  "value": 1
+                }
+              ],
+              "nextScene": "scene3",
+              "conditions": []
+            },
+            {
+              "text": "【直言不讳】质疑此举用意（勇气+2，需勇气≥3）",
+              "effects": [
+                {
+                  "type": "stat",
+                  "target": "courage",
+                  "value": 2
+                }
+              ],
+              "nextScene": "scene3_brave",
+              "conditions": [
+                {
+                  "type": "stat",
+                  "target": "courage",
+                  "value": 3
+                }
+              ]
+            }
+          ]
+        },
+        "scene2_alt": {
+          "background": "resources/backgrounds/cold_palace.png",
+          "bgm": "resources/music/cold_palace_theme.mp3",
+          "dialogues": [
+            {
+              "name": "太监总管",
+              "text": "（冷笑）装病？娘娘可要想清楚，违抗圣旨的后果...",
+              "character": null,
+              "voice": null
+            },
+            {
+              "name": "苏清月",
+              "text": "（镇定）本宫身体确实不适，还请总管代为禀告陛下。",
+              "character": "resources/characters/heroine_cold_palace.png",
+              "voice": null
+            },
+            {
+              "name": "系统提示",
+              "text": "你的举动引起了注意...这可能会带来意想不到的后果。",
+              "character": null,
+              "voice": null
+            }
+          ],
+          "choices": [
+            {
+              "text": "【继续装病】坚持己见",
+              "effects": [
+                {
+                  "type": "stat",
+                  "target": "courage",
+                  "value": 1
+                }
+              ],
+              "nextScene": "scene3",
+              "conditions": []
+            },
+            {
+              "text": "【改变主意】还是前去觐见",
+              "effects": [],
+              "nextScene": "scene2",
+              "conditions": []
+            }
+          ]
+        },
+        "scene2_gu": {
+          "background": "resources/backgrounds/medical_hall.png",
+          "bgm": "resources/music/gentle_theme.mp3",
+          "dialogues": [
+            {
+              "name": "顾清弦",
+              "text": "（关切）娘娘，有何要事？",
+              "character": "resources/characters/gu_taiyi.png",
+              "voice": null
+            },
+            {
+              "name": "苏清月",
+              "text": "顾太医，皇帝突然召见，你说这是福是祸？",
+              "character": "resources/characters/heroine_cold_palace.png",
+              "voice": null
+            },
+            {
+              "name": "顾清弦",
+              "text": "（沉思）依在下之见，陛下此举必有深意。娘娘不妨以静制动，观其变化。",
+              "character": "resources/characters/gu_taiyi.png",
+              "voice": null
+            }
+          ],
+          "choices": [
+            {
+              "text": "【接受建议】多谢顾太医指点（顾清弦好感+2）",
+              "effects": [
+                {
+                  "type": "affection",
+                  "target": "gu",
+                  "value": 2
+                }
+              ],
+              "nextScene": "scene2",
+              "conditions": []
+            },
+            {
+              "text": "【继续询问】请教宫中局势",
+              "effects": [
+                {
+                  "type": "affection",
+                  "target": "gu",
+                  "value": 1
+                },
+                {
+                  "type": "stat",
+                  "target": "insight",
+                  "value": 1
+                }
+              ],
+              "nextScene": "scene2",
+              "conditions": []
+            }
+          ]
+        },
+        "scene3": {
+          "background": "resources/backgrounds/throne_room.png",
+          "bgm": "resources/music/ending_theme.mp3",
+          "dialogues": [
+            {
+              "name": "皇帝",
+              "text": "不错。苏氏，朕准你复位，册封为昭仪。",
+              "character": null,
+              "voice": null
+            },
+            {
+              "name": "苏清月",
+              "text": "（惊讶）谢陛下隆恩！",
+              "character": "resources/characters/heroine_cold_palace.png",
+              "voice": null
+            },
+            {
+              "name": "系统提示",
+              "text": "你成功走出冷宫，但宫廷权谋才刚刚开始...",
+              "character": null,
+              "voice": null
+            }
+          ],
+          "choices": [
+            {
+              "text": "【第二章完成】返回主菜单",
+              "effects": [],
+              "nextScene": "end",
+              "conditions": []
+            }
+          ]
+        },
+        "scene3_brave": {
+          "background": "resources/backgrounds/throne_room.png",
+          "bgm": "resources/music/tense_theme.mp3",
+          "dialogues": [
+            {
+              "name": "皇帝",
+              "text": "（大笑）好！有胆识！朕欣赏你的勇气。",
+              "character": null,
+              "voice": null
+            },
+            {
+              "name": "皇帝",
+              "text": "苏氏，从今日起，你便是朕的妃嫔了。",
+              "character": null,
+              "voice": null
+            },
+            {
+              "name": "系统提示",
+              "text": "你的勇气赢得了皇帝的赏识，但也可能引来嫉妒...",
+              "character": null,
+              "voice": null
+            }
+          ],
+          "choices": [
+            {
+              "text": "【第二章完成】返回主菜单",
+              "effects": [],
+              "nextScene": "end",
+              "conditions": []
+            }
+          ]
+        },
+        "end": {
+          "background": "resources/backgrounds/throne_room.png",
+          "bgm": "resources/music/ending_theme.mp3",
+          "dialogues": [
+            {
+              "name": "系统提示",
+              "text": "第二章：宫闱暗涌 完",
+              "character": null,
+              "voice": null
+            },
+            {
+              "name": "系统提示",
+              "text": "恭喜完成第二章！你已经成功脱离冷宫，但真正的挑战才刚刚开始...",
+              "character": null,
+              "voice": null
+            }
+          ],
+          "choices": [
+            {
+              "text": "【继续第三章】权谋之争（敬请期待）",
+              "effects": [],
+              "nextScene": "chapter3:scene1",
+              "conditions": []
+            },
+            {
+              "text": "【返回主菜单】",
+              "effects": [],
+              "nextScene": "main_menu",
+              "conditions": []
+            }
+          ]
         }
       }
     }
   },
-  "startChapter": "chapter1",
   "startScene": "scene1"
 };
 
@@ -518,4 +876,4 @@ window.GAME_ACHIEVEMENTS_CONFIG = {
 };
 
 console.log('✅ 游戏配置数据已加载');
-console.log('📅 生成时间: 2025-10-26 11:41:27');
+console.log('📅 生成时间: 2025-10-26 13:31:09');

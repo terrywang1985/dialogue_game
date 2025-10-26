@@ -520,10 +520,15 @@
             // 隐藏选择容器
             document.getElementById('choicesContainer').classList.add('hidden');
             
-            // 加载下一个场景
-            if (choice.nextScene === 'end') {
+            // 处理特殊场景跳转
+            if (choice.nextScene === 'game_end') {
+                // 只有整个游戏结束才显示结局画面
                 showEndScreen();
+            } else if (choice.nextScene === 'main_menu') {
+                // 返回主菜单
+                window.location.href = 'index.html';
             } else {
+                // 加载下一个场景（支持跨章节，包括 chapter2:scene1 这种格式）
                 loadScene(choice.nextScene);
             }
         }
@@ -543,19 +548,21 @@
             localStorage.setItem('phoenixGameSave', JSON.stringify(gameStateLocal));
         }
         
-        // 显示结局画面
+        // 显示结局画面（整个游戏的真正结局）
         function showEndScreen() {
             const dialogueBox = document.getElementById('dialogueBox');
             dialogueBox.innerHTML = `
-                <div class="character-name">第一章完成</div>
+                <div class="character-name">游戏完成</div>
                 <div class="dialogue-text">
-                    感谢您体验《凤临朝：穿越之权倾天下》首章内容！<br><br>
+                    恭喜您完成《凤临朝：穿越之权倾天下》全部剧情！<br><br>
                     您的选择塑造了独特的剧情体验：<br>
                     智慧：${gameStateLocal.stats.wisdom}<br>
                     勇气：${gameStateLocal.stats.courage}<br>
                     洞察：${gameStateLocal.stats.insight}<br>
                     魅力：${gameStateLocal.stats.charm}<br><br>
-                    更多精彩剧情正在制作中...
+                    总共做出 ${gameStateLocal.choices.length} 次选择<br>
+                    解锁 ${gameStateLocal.visitedScenes.length} 个场景<br><br>
+                    感谢您的游玩！
                 </div>
             `;
             

@@ -264,13 +264,29 @@ class StoryDataManager {
         }
     }
     
-    // 获取场景数据
+    // 获取场景数据（支持跨章节场景ID，如 "chapter2_scene1"）
     getScene(sceneId) {
         if (!this.isLoaded) {
             console.error('配置文件尚未加载');
             return null;
         }
         
+        // 检查是否为跨章节场景ID（格式：chapter2_scene1）
+        if (sceneId.includes('chapter') && sceneId.includes('_')) {
+            const parts = sceneId.split('_');
+            const chapterId = parts[0]; // chapter2
+            const actualSceneId = parts.slice(1).join('_'); // scene1
+            
+            const chapter = this.storyConfig.chapters[chapterId];
+            if (chapter && chapter.scenes[actualSceneId]) {
+                // 自动切换到对应章节
+                this.currentChapter = chapterId;
+                console.log(`🔄 切换到章节: ${chapterId}`);
+                return chapter.scenes[actualSceneId];
+            }
+        }
+        
+        // 如果是普通场景ID，从当前章节中查找
         const chapter = this.storyConfig.chapters[this.currentChapter];
         return chapter ? chapter.scenes[sceneId] : null;
     }

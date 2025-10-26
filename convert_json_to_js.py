@@ -58,6 +58,62 @@ console.log('📅 生成时间: {current_time}');
     
     return js_code
 
+def merge_chapters(chapters_index_path='config/chapters_index.json'):
+    """合并多个章节配置文件为统一的story_config"""
+    chapters_index = read_json(chapters_index_path)
+    
+    if chapters_index is None:
+        print(f"⚠️  警告：找不到 {chapters_index_path}，使用传统单文件模式")
+        return None
+    
+    print(f"📚 检测到章节索引文件，启用模块化章节加载")
+    
+    merged_config = {
+        "startChapter": chapters_index.get("startChapter", "chapter1"),
+        "chapters": {}
+    }
+    
+    # chapters 是对象（字典），不是数组
+    chapters_dict = chapters_index.get("chapters", {})
+    print(f"   - 发现 {len(chapters_dict)} 个章节配置")
+    
+    for chapter_id, chapter_info in chapters_dict.items():
+        config_file = chapter_info.get("configFile")
+        
+        if not config_file:
+            print(f"   ⚠️  跳过章节 {chapter_id}：未指定配置文件")
+            continue
+        
+        # 读取章节配置文件（需要加上 config/ 前缀）
+        config_path = os.path.join('config', config_file)
+        chapter_data = read_json(config_path)
+        
+        if chapter_data is None:
+            print(f"   ❌ 无法加载章节 {chapter_id} 配置文件: {config_file}")
+            continue
+        
+        # 将独立章节配置合并到统一结构
+        merged_config["chapters"][chapter_id] = {
+            "title": chapter_data.get("title", chapter_info.get("title")),
+            "description": chapter_data.get("description", chapter_info.get("description")),
+            "startScene": chapter_data.get("startScene"),
+            "scenes": chapter_data.get("scenes", {})
+        }
+        
+        print(f"   ✅ 加载章节: {chapter_id} ({merged_config['chapters'][chapter_id]['title']})")
+        scene_count = len(merged_config['chapters'][chapter_id]['scenes'])
+        print(f"      场景数: {scene_count}")
+    
+    # 设置起始场景（从起始章节获取）
+    start_chapter_id = merged_config.get("startChapter")
+    if start_chapter_id in merged_config["chapters"]:
+        merged_config["startScene"] = merged_config["chapters"][start_chapter_id].get("startScene", "scene1")
+    else:
+        merged_config["startScene"] = "scene1"
+    
+    print()
+    return merged_config
+
 def main():
     """主函数"""
     print("=" * 50)
@@ -67,6 +123,7 @@ def main():
     
     # 文件路径
     story_config_path = 'config/story_config.json'
+    chapters_index_path = 'config/chapters_index.json'
     resources_config_path = 'config/resources_config.json'
     collection_config_path = 'config/collection_config.json'
     characters_config_path = 'config/characters_config.json'
@@ -74,15 +131,24 @@ def main():
     output_path = 'game-data.js'
     
     print(f"📖 读取配置文件...")
-    print(f"   - {story_config_path}")
+    
+    # 优先尝试模块化章节加载
+    story_config = None
+    if os.path.exists(chapters_index_path):
+        story_config = merge_chapters(chapters_index_path)
+    
+    # 如果模块化加载失败，回退到传统方式
+    if story_config is None:
+        print(f"   - {story_config_path}")
+        story_config = read_json(story_config_path)
+    
     print(f"   - {resources_config_path}")
     print(f"   - {collection_config_path}")
     print(f"   - {characters_config_path}")
     print(f"   - {achievements_config_path}")
     print()
     
-    # 读取JSON文件
-    story_config = read_json(story_config_path)
+    # 读取其他JSON文件
     resources_config = read_json(resources_config_path)
     collection_config = read_json(collection_config_path)
     characters_config = read_json(characters_config_path)

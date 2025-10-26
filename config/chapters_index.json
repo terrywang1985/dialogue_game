@@ -1,0 +1,42 @@
+{
+  "_comment": "章节索引配置 - 管理所有章节的元数据和关系",
+  "startChapter": "chapter1",
+  "chapters": {
+    "chapter1": {
+      "id": "chapter1",
+      "title": "第一章：冷宫初遇",
+      "description": "穿越成冷宫废妃，结识关键人物",
+      "configFile": "chapter1_config.json",
+      "prevChapter": null,
+      "nextChapter": "chapter2",
+      "unlockCondition": null,
+      "status": "available"
+    },
+    "chapter2": {
+      "id": "chapter2",
+      "title": "第二章：宫廷暗涌",
+      "description": "深入宫廷，卷入权力斗争",
+      "configFile": "chapter2_config.json",
+      "prevChapter": "chapter1",
+      "nextChapter": "chapter3",
+      "unlockCondition": {
+        "type": "complete_chapter",
+        "chapterId": "chapter1"
+      },
+      "status": "locked"
+    },
+    "chapter3": {
+      "id": "chapter3",
+      "title": "第三章：权谋之争",
+      "description": "参与朝堂博弈，展现智慧",
+      "configFile": "chapter3_config.json",
+      "prevChapter": "chapter2",
+      "nextChapter": null,
+      "unlockCondition": {
+        "type": "complete_chapter",
+        "chapterId": "chapter2"
+      },
+      "status": "coming_soon"
+    }
+  }
+}
